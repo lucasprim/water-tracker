@@ -5,6 +5,7 @@ import SwiftData
 struct WaterTrackerApp: App {
     let container: ModelContainer
     @State private var timerManager = DrinkTimerManager()
+    @State private var webcamMonitor = WebcamMonitor()
     @State private var appCoordinator: AppCoordinator?
 
     init() {
@@ -15,12 +16,13 @@ struct WaterTrackerApp: App {
 
     var body: some Scene {
         MenuBarExtra {
-            PopoverContentView(timerManager: timerManager)
+            PopoverContentView(timerManager: timerManager, webcamMonitor: webcamMonitor)
                 .modelContainer(container)
                 .onAppear {
                     if appCoordinator == nil {
                         let coordinator = AppCoordinator(
                             timerManager: timerManager,
+                            webcamMonitor: webcamMonitor,
                             modelContext: container.mainContext
                         )
                         coordinator.start()
@@ -28,7 +30,10 @@ struct WaterTrackerApp: App {
                     }
                 }
         } label: {
-            MenuBarLabel(timerManager: timerManager)
+            MenuBarLabel(
+                timerManager: timerManager,
+                isFlashing: appCoordinator?.isFlashingBlue ?? false
+            )
         }
         .menuBarExtraStyle(.window)
     }
@@ -38,10 +43,12 @@ struct WaterTrackerApp: App {
 
 private struct MenuBarLabel: View {
     let timerManager: DrinkTimerManager
+    var isFlashing: Bool = false
 
     var body: some View {
         HStack(spacing: 4) {
             Image(systemName: "drop.fill")
+                .foregroundStyle(isFlashing ? .blue : .primary)
             if !timerManager.formattedTimeRemaining.isEmpty {
                 Text(timerManager.formattedTimeRemaining)
                     .monospacedDigit()

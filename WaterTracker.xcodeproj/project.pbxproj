@@ -22,6 +22,7 @@
 		F25DE17918433804B6A17BD6 /* EntrySource.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F29014985ECF8520A61D9C6 /* EntrySource.swift */; };
 		F284AD3B0511B33492FF7FAC /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = FE16D539EFC04F5511FA9C75 /* Assets.xcassets */; };
 		FE004EBD46FDC7A82038B7F0 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F27C9CF8160F53A98AB362DB /* SettingsView.swift */; };
+		FF7FA82ECC81A158BDF65A3C /* WebcamMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34B025CD076EC6102ECC855C /* WebcamMonitor.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -40,6 +41,7 @@
 		1D90B1049ECA1CB7F4FC6A83 /* DrinkTimerManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DrinkTimerManager.swift; sourceTree = "<group>"; };
 		3334FAD20CC92BFA57AC4CEC /* DailyProgressStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyProgressStoreTests.swift; sourceTree = "<group>"; };
 		3482200388FC9196A0884640 /* AppCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppCoordinator.swift; sourceTree = "<group>"; };
+		34B025CD076EC6102ECC855C /* WebcamMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebcamMonitor.swift; sourceTree = "<group>"; };
 		35A6750DD947BC79625010F8 /* WaterTrackerTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = WaterTrackerTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		43CD7FE47218F8042B598D87 /* DrinkTimerManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DrinkTimerManagerTests.swift; sourceTree = "<group>"; };
 		4F29014985ECF8520A61D9C6 /* EntrySource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EntrySource.swift; sourceTree = "<group>"; };
@@ -123,6 +125,7 @@
 			children = (
 				1D90B1049ECA1CB7F4FC6A83 /* DrinkTimerManager.swift */,
 				0F3BD7410B2FC202ACE26027 /* NotificationService.swift */,
+				34B025CD076EC6102ECC855C /* WebcamMonitor.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -257,6 +260,7 @@
 				3C53C5594FCD2504DAEB8599 /* WaterCupView.swift in Sources */,
 				3EC6FF6CABD4672D9906C0A7 /* WaterEntry.swift in Sources */,
 				0245D5CEA9AF825D286C0A5D /* WaterTrackerApp.swift in Sources */,
+				FF7FA82ECC81A158BDF65A3C /* WebcamMonitor.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

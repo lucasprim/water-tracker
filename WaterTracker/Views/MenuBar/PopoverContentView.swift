@@ -5,11 +5,12 @@ struct PopoverContentView: View {
     @Environment(\.modelContext) private var modelContext
     @State private var store: DailyProgressStore?
     var timerManager: DrinkTimerManager
+    var webcamMonitor: WebcamMonitor
 
     var body: some View {
         Group {
             if let store {
-                PopoverBody(store: store, timerManager: timerManager)
+                PopoverBody(store: store, timerManager: timerManager, webcamMonitor: webcamMonitor)
             } else {
                 ProgressView()
                     .frame(width: 280, height: 300)
@@ -28,6 +29,7 @@ struct PopoverContentView: View {
 private struct PopoverBody: View {
     @Bindable var store: DailyProgressStore
     var timerManager: DrinkTimerManager
+    var webcamMonitor: WebcamMonitor
     @State private var showingSettings = false
 
     var body: some View {
@@ -42,6 +44,10 @@ private struct PopoverBody: View {
                 logButton
             }
 
+            if webcamMonitor.status == .denied {
+                cameraDeniedView
+            }
+
             Divider()
 
             settingsButton
@@ -51,7 +57,6 @@ private struct PopoverBody: View {
         .sheet(isPresented: $showingSettings) {
             SettingsView {
                 store.refresh()
-                timerManager.start(intervalMinutes: Int(store.bottleSizeMl > 0 ? 15 : 15))
                 reloadTimerInterval()
             }
         }
@@ -71,6 +76,7 @@ private struct PopoverBody: View {
             store.logBottle()
             if store.isGoalReached {
                 timerManager.stop()
+                webcamMonitor.stop()
             } else {
                 reloadTimerInterval()
             }
@@ -93,6 +99,23 @@ private struct PopoverBody: View {
             Text("Great job staying hydrated today")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
+        }
+    }
+
+    private var cameraDeniedView: some View {
+        VStack(spacing: 6) {
+            Text("Camera access denied")
+                .font(.caption)
+                .foregroundStyle(.orange)
+
+            Button("Open System Settings") {
+                if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Camera") {
+                    NSWorkspace.shared.open(url)
+                }
+            }
+            .font(.caption)
+            .buttonStyle(.plain)
+            .foregroundStyle(.blue)
         }
     }
 
@@ -134,6 +157,6 @@ private struct PopoverBody: View {
 }
 
 #Preview {
-    PopoverContentView(timerManager: DrinkTimerManager())
+    PopoverContentView(timerManager: DrinkTimerManager(), webcamMonitor: WebcamMonitor())
         .modelContainer(for: [WaterEntry.self, AppSettings.self], inMemory: true)
 }
