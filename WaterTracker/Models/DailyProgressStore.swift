@@ -1,0 +1,67 @@
+import Foundation
+import SwiftData
+import Observation
+
+@MainActor
+@Observable
+final class DailyProgressStore {
+    private let modelContext: ModelContext
+
+    private(set) var todayTotalMl: Double = 0
+    private(set) var goalMl: Double = 2000
+    private(set) var bottleSizeMl: Double = 500
+
+    var completionPercentage: Double {
+        guard goalMl > 0 else { return 0 }
+        return min(todayTotalMl / goalMl, 1.0)
+    }
+
+    var isGoalReached: Bool {
+        todayTotalMl >= goalMl
+    }
+
+    init(modelContext: ModelContext) {
+        self.modelContext = modelContext
+        refresh()
+    }
+
+    func logBottle(source: EntrySource = .manual) {
+        let entry = WaterEntry(volumeMl: bottleSizeMl, source: source)
+        modelContext.insert(entry)
+        try? modelContext.save()
+        refresh()
+    }
+
+    func refresh() {
+        loadSettings()
+        loadTodayEntries()
+    }
+
+    // MARK: - Private
+
+    private func loadSettings() {
+        let descriptor = FetchDescriptor<AppSettings>()
+        if let settings = try? modelContext.fetch(descriptor).first {
+            goalMl = settings.dailyGoalMl
+            bottleSizeMl = settings.bottleSizeMl
+        } else {
+            let defaults = AppSettings()
+            modelContext.insert(defaults)
+            try? modelContext.save()
+            goalMl = defaults.dailyGoalMl
+            bottleSizeMl = defaults.bottleSizeMl
+        }
+    }
+
+    private func loadTodayEntries() {
+        let startOfDay = Calendar.current.startOfDay(for: Date())
+        let predicate = #Predicate<WaterEntry> { entry in
+            entry.timestamp >= startOfDay
+        }
+        var descriptor = FetchDescriptor<WaterEntry>(predicate: predicate)
+        descriptor.sortBy = [SortDescriptor(\.timestamp)]
+
+        let entries = (try? modelContext.fetch(descriptor)) ?? []
+        todayTotalMl = entries.reduce(0) { $0 + $1.volumeMl }
+    }
+}

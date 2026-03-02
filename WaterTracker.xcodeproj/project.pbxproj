@@ -8,8 +8,13 @@
 
 /* Begin PBXBuildFile section */
 		0245D5CEA9AF825D286C0A5D /* WaterTrackerApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB1EAD9712CA07B5D94F5EF6 /* WaterTrackerApp.swift */; };
+		33B0F7EEAC31A7A0C0D24C6F /* DailyProgressStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D42E56F1EF6754125985224 /* DailyProgressStore.swift */; };
+		3EC6FF6CABD4672D9906C0A7 /* WaterEntry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7FC99214F72672A21A971491 /* WaterEntry.swift */; };
+		5DEF38C98287116931BE5EF9 /* AppSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D646925D6EDFCBD4BC0D160 /* AppSettings.swift */; };
 		AE7E69E685E5367AF7E02B9E /* WaterTrackerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5FB2A81CECD2E4D0015154FC /* WaterTrackerTests.swift */; };
 		CDE2E32115A29E4D2C8D8478 /* PopoverContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 97CC81C662AD46C3E62327E6 /* PopoverContentView.swift */; };
+		EE57E38837762440B5FF87E9 /* DailyProgressStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3334FAD20CC92BFA57AC4CEC /* DailyProgressStoreTests.swift */; };
+		F25DE17918433804B6A17BD6 /* EntrySource.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F29014985ECF8520A61D9C6 /* EntrySource.swift */; };
 		F284AD3B0511B33492FF7FAC /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = FE16D539EFC04F5511FA9C75 /* Assets.xcassets */; };
 /* End PBXBuildFile section */
 
@@ -24,9 +29,14 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		0D42E56F1EF6754125985224 /* DailyProgressStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyProgressStore.swift; sourceTree = "<group>"; };
+		3334FAD20CC92BFA57AC4CEC /* DailyProgressStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyProgressStoreTests.swift; sourceTree = "<group>"; };
 		35A6750DD947BC79625010F8 /* WaterTrackerTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = WaterTrackerTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		4F29014985ECF8520A61D9C6 /* EntrySource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EntrySource.swift; sourceTree = "<group>"; };
 		5B25B361188D71E2AD89E217 /* WaterTracker.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = WaterTracker.entitlements; sourceTree = "<group>"; };
 		5FB2A81CECD2E4D0015154FC /* WaterTrackerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WaterTrackerTests.swift; sourceTree = "<group>"; };
+		7D646925D6EDFCBD4BC0D160 /* AppSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettings.swift; sourceTree = "<group>"; };
+		7FC99214F72672A21A971491 /* WaterEntry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WaterEntry.swift; sourceTree = "<group>"; };
 		83BFE5C055BF9AD72EE6FBEE /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		97CC81C662AD46C3E62327E6 /* PopoverContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PopoverContentView.swift; sourceTree = "<group>"; };
 		9DB159053107388D9B89CFBA /* WaterTracker.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = WaterTracker.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -38,9 +48,21 @@
 		13EFB2CA35258A8FBC32B4C2 /* WaterTrackerTests */ = {
 			isa = PBXGroup;
 			children = (
+				3334FAD20CC92BFA57AC4CEC /* DailyProgressStoreTests.swift */,
 				5FB2A81CECD2E4D0015154FC /* WaterTrackerTests.swift */,
 			);
 			path = WaterTrackerTests;
+			sourceTree = "<group>";
+		};
+		2AEA64D8C4DB374FC64A6D86 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				7D646925D6EDFCBD4BC0D160 /* AppSettings.swift */,
+				0D42E56F1EF6754125985224 /* DailyProgressStore.swift */,
+				4F29014985ECF8520A61D9C6 /* EntrySource.swift */,
+				7FC99214F72672A21A971491 /* WaterEntry.swift */,
+			);
+			path = Models;
 			sourceTree = "<group>";
 		};
 		31DFA1BDA0A4D72D1D12875C = {
@@ -58,6 +80,7 @@
 				83BFE5C055BF9AD72EE6FBEE /* Info.plist */,
 				5B25B361188D71E2AD89E217 /* WaterTracker.entitlements */,
 				F23524267AAAF46D60DDED1B /* App */,
+				2AEA64D8C4DB374FC64A6D86 /* Models */,
 				56417B73F4364157D7CCF2B6 /* Resources */,
 				C739B9C49E0E68EF068155A2 /* Views */,
 			);
@@ -189,7 +212,11 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				5DEF38C98287116931BE5EF9 /* AppSettings.swift in Sources */,
+				33B0F7EEAC31A7A0C0D24C6F /* DailyProgressStore.swift in Sources */,
+				F25DE17918433804B6A17BD6 /* EntrySource.swift in Sources */,
 				CDE2E32115A29E4D2C8D8478 /* PopoverContentView.swift in Sources */,
+				3EC6FF6CABD4672D9906C0A7 /* WaterEntry.swift in Sources */,
 				0245D5CEA9AF825D286C0A5D /* WaterTrackerApp.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -198,6 +225,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				EE57E38837762440B5FF87E9 /* DailyProgressStoreTests.swift in Sources */,
 				AE7E69E685E5367AF7E02B9E /* WaterTrackerTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
