@@ -1,0 +1,50 @@
+name: WaterTracker
+options:
+  bundleIdPrefix: com.lucasprim
+  deploymentTarget:
+    macOS: "14.0"
+  xcodeVersion: "16.0"
+  minimumXcodeGenVersion: "2.38"
+
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    MACOSX_DEPLOYMENT_TARGET: "14.0"
+
+targets:
+  WaterTracker:
+    type: application
+    platform: macOS
+    sources:
+      - WaterTracker
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.lucasprim.water-tracker
+        INFOPLIST_FILE: WaterTracker/Info.plist
+        CODE_SIGN_ENTITLEMENTS: WaterTracker/WaterTracker.entitlements
+        GENERATE_INFOPLIST_FILE: false
+        PRODUCT_NAME: Water Tracker
+        MARKETING_VERSION: "1.0.0"
+        CURRENT_PROJECT_VERSION: "1"
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ENABLE_PREVIEWS: true
+        SWIFT_STRICT_CONCURRENCY: complete
+    entitlements:
+      path: WaterTracker/WaterTracker.entitlements
+      properties:
+        com.apple.security.app-sandbox: true
+        com.apple.security.device.camera: true
+
+  WaterTrackerTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - WaterTrackerTests
+    dependencies:
+      - target: WaterTracker
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.lucasprim.water-tracker-tests
+        GENERATE_INFOPLIST_FILE: true
+        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/Water Tracker.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Water Tracker"
+        BUNDLE_LOADER: "$(TEST_HOST)"
