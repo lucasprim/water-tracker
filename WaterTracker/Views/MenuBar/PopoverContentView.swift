@@ -121,6 +121,16 @@ private struct PopoverBody: View {
             Text("Great job staying hydrated today")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
+
+            Button("Reset today") {
+                store.resetToday()
+                reloadTimerInterval()
+                webcamMonitor.start()
+            }
+            .font(.caption)
+            .buttonStyle(.plain)
+            .foregroundStyle(.secondary)
+            .padding(.top, 4)
         }
     }
 

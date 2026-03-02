@@ -15,6 +15,7 @@
 		3EC6FF6CABD4672D9906C0A7 /* WaterEntry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7FC99214F72672A21A971491 /* WaterEntry.swift */; };
 		5D7A4913FACBEAF54C79644C /* AppCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3482200388FC9196A0884640 /* AppCoordinator.swift */; };
 		5DEF38C98287116931BE5EF9 /* AppSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D646925D6EDFCBD4BC0D160 /* AppSettings.swift */; };
+		9550151A2A6703B6BE85E44B /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9670BF52F1A53A8517206143 /* AppDelegate.swift */; };
 		AE7E69E685E5367AF7E02B9E /* WaterTrackerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5FB2A81CECD2E4D0015154FC /* WaterTrackerTests.swift */; };
 		AF03542B65AC47ABDA949061 /* NotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F3BD7410B2FC202ACE26027 /* NotificationService.swift */; };
 		CDE2E32115A29E4D2C8D8478 /* PopoverContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 97CC81C662AD46C3E62327E6 /* PopoverContentView.swift */; };
@@ -50,6 +51,7 @@
 		7D646925D6EDFCBD4BC0D160 /* AppSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettings.swift; sourceTree = "<group>"; };
 		7FC99214F72672A21A971491 /* WaterEntry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WaterEntry.swift; sourceTree = "<group>"; };
 		83BFE5C055BF9AD72EE6FBEE /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		9670BF52F1A53A8517206143 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		9692B60AE615CFA9B56D063A /* WaterCupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WaterCupView.swift; sourceTree = "<group>"; };
 		97CC81C662AD46C3E62327E6 /* PopoverContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PopoverContentView.swift; sourceTree = "<group>"; };
 		9DB159053107388D9B89CFBA /* WaterTracker.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = WaterTracker.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -160,6 +162,7 @@
 			isa = PBXGroup;
 			children = (
 				3482200388FC9196A0884640 /* AppCoordinator.swift */,
+				9670BF52F1A53A8517206143 /* AppDelegate.swift */,
 				FB1EAD9712CA07B5D94F5EF6 /* WaterTrackerApp.swift */,
 			);
 			path = App;
@@ -250,6 +253,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				5D7A4913FACBEAF54C79644C /* AppCoordinator.swift in Sources */,
+				9550151A2A6703B6BE85E44B /* AppDelegate.swift in Sources */,
 				5DEF38C98287116931BE5EF9 /* AppSettings.swift in Sources */,
 				33B0F7EEAC31A7A0C0D24C6F /* DailyProgressStore.swift in Sources */,
 				155740147EA37C315168C5B1 /* DrinkTimerManager.swift in Sources */,

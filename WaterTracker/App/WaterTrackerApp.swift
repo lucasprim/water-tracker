@@ -1,8 +1,13 @@
 import SwiftUI
 import SwiftData
+import os
+
+private let logger = Logger(subsystem: "com.lucasprim.water-tracker", category: "App")
 
 @main
 struct WaterTrackerApp: App {
+    @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
+
     let container: ModelContainer
     @State private var timerManager = DrinkTimerManager()
     @State private var webcamMonitor = WebcamMonitor()
@@ -12,6 +17,7 @@ struct WaterTrackerApp: App {
         let schema = Schema([WaterEntry.self, AppSettings.self])
         let config = ModelConfiguration(schema: schema)
         container = try! ModelContainer(for: schema, configurations: [config])
+        logger.notice("WaterTrackerApp init — container created")
     }
 
     var body: some Scene {
@@ -19,15 +25,15 @@ struct WaterTrackerApp: App {
             PopoverContentView(timerManager: timerManager, webcamMonitor: webcamMonitor)
                 .modelContainer(container)
                 .onAppear {
-                    if appCoordinator == nil {
-                        let coordinator = AppCoordinator(
-                            timerManager: timerManager,
-                            webcamMonitor: webcamMonitor,
-                            modelContext: container.mainContext
-                        )
-                        coordinator.start()
-                        appCoordinator = coordinator
-                    }
+                    guard appCoordinator == nil else { return }
+                    logger.notice("Starting AppCoordinator from popover onAppear...")
+                    let coordinator = AppCoordinator(
+                        timerManager: timerManager,
+                        webcamMonitor: webcamMonitor,
+                        modelContext: container.mainContext
+                    )
+                    coordinator.start()
+                    appCoordinator = coordinator
                 }
         } label: {
             MenuBarLabel(

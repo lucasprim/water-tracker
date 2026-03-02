@@ -37,6 +37,21 @@ final class DailyProgressStore {
         loadTodayEntries()
     }
 
+    func resetToday() {
+        let startOfDay = Calendar.current.startOfDay(for: Date())
+        let predicate = #Predicate<WaterEntry> { entry in
+            entry.timestamp >= startOfDay
+        }
+        let descriptor = FetchDescriptor<WaterEntry>(predicate: predicate)
+        if let entries = try? modelContext.fetch(descriptor) {
+            for entry in entries {
+                modelContext.delete(entry)
+            }
+            try? modelContext.save()
+        }
+        refresh()
+    }
+
     // MARK: - Private
 
     private func loadSettings() {
