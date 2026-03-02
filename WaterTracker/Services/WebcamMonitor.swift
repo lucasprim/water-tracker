@@ -25,7 +25,7 @@ final class WebcamMonitor {
     private let captureDelegate = CaptureDelegate()
     private var session: AVCaptureSession?
     private var consecutivePositiveFrames = 0
-    private let requiredConsecutiveFrames = 2
+    private let requiredConsecutiveFrames = 5
 
     func start() {
         logger.notice("WebcamMonitor.start() called, current status: \(self.status.rawValue)")
@@ -191,6 +191,9 @@ private final class CaptureDelegate: NSObject, AVCaptureVideoDataOutputSampleBuf
     private let handRequest = VNDetectHumanHandPoseRequest()
     private var frameCount = 0
     private var lastLogFrame = 0
+    private var lastAnalysisTime: CFAbsoluteTime = 0
+    /// Minimum interval between frame analyses (0.5s = ~2 fps processing)
+    private let analysisInterval: CFAbsoluteTime = 0.5
 
     override init() {
         handRequest.maximumHandCount = 2
@@ -207,6 +210,11 @@ private final class CaptureDelegate: NSObject, AVCaptureVideoDataOutputSampleBuf
             logger.notice("First frame received from camera")
         }
 
+        // Throttle analysis to ~2fps regardless of camera frame rate
+        let now = CFAbsoluteTimeGetCurrent()
+        guard now - lastAnalysisTime >= analysisInterval else { return }
+        lastAnalysisTime = now
+
         guard let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
 
         let handler = VNImageRequestHandler(cvPixelBuffer: pixelBuffer, options: [:])
@@ -220,11 +228,12 @@ private final class CaptureDelegate: NSObject, AVCaptureVideoDataOutputSampleBuf
         onFrameAnalyzed?(isDrinking)
     }
 
-    /// Detect drinking by checking if a hand wrist is near or overlapping the face region.
+    /// Detect drinking by checking if a hand wrist overlaps the face region.
     ///
     /// Uses face rectangle + hand pose wrist position. When someone brings a
-    /// bottle/glass to their mouth, the wrist overlaps or is very close to
-    /// the face bounding box.
+    /// bottle/glass to their mouth, the wrist overlaps the face bounding box.
+    /// We use a tight zone around the face (small expansion) to avoid false
+    /// positives from normal hand gestures near the face.
     private func detectDrinkingGesture() -> Bool {
         guard let faces = faceRequest.results, let face = faces.first else {
             logPeriodically("No face detected")
@@ -239,22 +248,21 @@ private final class CaptureDelegate: NSObject, AVCaptureVideoDataOutputSampleBuf
         // Face bounding box (normalized 0-1 coordinates, origin at bottom-left)
         let faceBox = face.boundingBox
 
-        // Expand the face region to catch hands near the face (drinking zone)
-        // Expand more downward (for chin/mouth area) and to the sides
-        let expandX: CGFloat = faceBox.width * 0.5
-        let expandUp: CGFloat = faceBox.height * 0.3
-        let expandDown: CGFloat = faceBox.height * 0.5
+        // Tight drink zone: only a small expansion around the face.
+        // We focus on the lower half of the face (mouth/chin) where
+        // a bottle or glass would actually be held when drinking.
+        let expandX: CGFloat = faceBox.width * 0.15
+        let expandDown: CGFloat = faceBox.height * 0.2
         let drinkZone = CGRect(
             x: faceBox.minX - expandX,
             y: faceBox.minY - expandDown,
             width: faceBox.width + expandX * 2,
-            height: faceBox.height + expandUp + expandDown
+            height: faceBox.height * 0.6 + expandDown  // only lower 60% of face + chin
         )
 
         for hand in hands {
-            // Get wrist position
             guard let wrist = try? hand.recognizedPoint(.wrist),
-                  wrist.confidence > 0.3 else {
+                  wrist.confidence > 0.5 else {
                 continue
             }
 
@@ -262,15 +270,6 @@ private final class CaptureDelegate: NSObject, AVCaptureVideoDataOutputSampleBuf
 
             if drinkZone.contains(wristPoint) {
                 logPeriodically("MATCH: wrist at (\(String(format: "%.2f", wristPoint.x)),\(String(format: "%.2f", wristPoint.y))) in drink zone \(String(format: "(%.2f,%.2f)-(%.2f,%.2f)", drinkZone.minX, drinkZone.minY, drinkZone.maxX, drinkZone.maxY))")
-                return true
-            }
-
-            // Also check middle finger MCP (base of middle finger) —
-            // when holding a bottle, this joint is often closer to the face
-            if let middleMCP = try? hand.recognizedPoint(.middleMCP),
-               middleMCP.confidence > 0.3,
-               drinkZone.contains(middleMCP.location) {
-                logPeriodically("MATCH: middleMCP near face")
                 return true
             }
         }
@@ -282,7 +281,7 @@ private final class CaptureDelegate: NSObject, AVCaptureVideoDataOutputSampleBuf
     private func logPeriodically(_ message: String) {
         if frameCount - lastLogFrame >= 25 {
             lastLogFrame = frameCount
-            logger.notice("\(message) (frame \(self.frameCount))")
+            logger.notice("\(message, privacy: .public) (frame \(self.frameCount))")
         }
     }
 }
