@@ -11,6 +11,8 @@ final class AppCoordinator {
     private let modelContext: ModelContext
     private var store: DailyProgressStore?
     private var dayChangeObserver: NSObjectProtocol?
+    private var lastDetectionTime: Date = .distantPast
+    private let detectionCooldown: TimeInterval = 30 // seconds between webcam detections
 
     init(timerManager: DrinkTimerManager, webcamMonitor: WebcamMonitor, modelContext: ModelContext) {
         self.timerManager = timerManager
@@ -81,6 +83,11 @@ final class AppCoordinator {
 
     private func handleDrinkingDetected() {
         guard let store, !store.isGoalReached else { return }
+
+        // Cooldown: ignore detections within 30 seconds of the last one
+        let now = Date()
+        guard now.timeIntervalSince(lastDetectionTime) >= detectionCooldown else { return }
+        lastDetectionTime = now
 
         store.logBottle(source: .webcam)
         flashMenuBarBlue()

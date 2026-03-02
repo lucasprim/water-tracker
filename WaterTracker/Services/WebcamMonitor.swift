@@ -25,15 +25,15 @@ final class WebcamMonitor {
     private let captureDelegate = CaptureDelegate()
     private var session: AVCaptureSession?
     private var consecutivePositiveFrames = 0
-    private let requiredConsecutiveFrames = 3
+    private let requiredConsecutiveFrames = 2
 
     func start() {
-        logger.info("WebcamMonitor.start() called, current status: \(self.status.rawValue)")
+        logger.notice("WebcamMonitor.start() called, current status: \(self.status.rawValue)")
         checkPermissionAndStart()
     }
 
     func stop() {
-        logger.info("WebcamMonitor.stop() called")
+        logger.notice("WebcamMonitor.stop() called")
         let sessionToStop = session
         session = nil
         status = .stopped
@@ -41,7 +41,6 @@ final class WebcamMonitor {
 
         sessionQueue.async {
             sessionToStop?.stopRunning()
-            logger.info("Session stopped")
         }
     }
 
@@ -49,7 +48,7 @@ final class WebcamMonitor {
 
     private func checkPermissionAndStart() {
         let authStatus = AVCaptureDevice.authorizationStatus(for: .video)
-        logger.info("Camera authorization status: \(String(describing: authStatus.rawValue))")
+        logger.notice("Camera authorization status: \(authStatus.rawValue)")
 
         switch authStatus {
         case .authorized:
@@ -57,9 +56,8 @@ final class WebcamMonitor {
             setupAndStartSession()
         case .notDetermined:
             Task {
-                logger.info("Requesting camera access...")
                 let granted = await AVCaptureDevice.requestAccess(for: .video)
-                logger.info("Camera access granted: \(granted)")
+                logger.notice("Camera access granted: \(granted)")
                 if granted {
                     status = .authorized
                     setupAndStartSession()
@@ -90,35 +88,31 @@ final class WebcamMonitor {
     }
 
     private nonisolated func configureSessionOnBackground() {
-        logger.info("Configuring capture session on background thread...")
+        logger.notice("Configuring capture session...")
 
         let session = AVCaptureSession()
         session.beginConfiguration()
 
-        // Use a compatible preset
-        if session.canSetSessionPreset(.low) {
-            session.sessionPreset = .low
-        } else {
+        // VGA for reliable face/hand detection
+        if session.canSetSessionPreset(.vga640x480) {
+            session.sessionPreset = .vga640x480
+        } else if session.canSetSessionPreset(.medium) {
             session.sessionPreset = .medium
         }
 
-        // Find camera
         guard let camera = AVCaptureDevice.default(for: .video) else {
             logger.error("No video capture device found")
             Task { @MainActor in self.status = .error }
             session.commitConfiguration()
             return
         }
-        logger.info("Camera found: \(camera.localizedName)")
 
-        // Add input
         do {
             let input = try AVCaptureDeviceInput(device: camera)
             if session.canAddInput(input) {
                 session.addInput(input)
-                logger.info("Camera input added")
             } else {
-                logger.error("Cannot add camera input to session")
+                logger.error("Cannot add camera input")
                 Task { @MainActor in self.status = .error }
                 session.commitConfiguration()
                 return
@@ -130,7 +124,6 @@ final class WebcamMonitor {
             return
         }
 
-        // Add output
         let output = AVCaptureVideoDataOutput()
         output.alwaysDiscardsLateVideoFrames = true
         output.setSampleBufferDelegate(
@@ -140,9 +133,8 @@ final class WebcamMonitor {
 
         if session.canAddOutput(output) {
             session.addOutput(output)
-            logger.info("Video output added")
         } else {
-            logger.error("Cannot add video output to session")
+            logger.error("Cannot add video output")
             Task { @MainActor in self.status = .error }
             session.commitConfiguration()
             return
@@ -150,30 +142,26 @@ final class WebcamMonitor {
 
         session.commitConfiguration()
 
-        // Configure frame rate (5 fps)
+        // 5 fps to save resources
         do {
             try camera.lockForConfiguration()
             camera.activeVideoMinFrameDuration = CMTime(value: 1, timescale: 5)
             camera.activeVideoMaxFrameDuration = CMTime(value: 1, timescale: 5)
             camera.unlockForConfiguration()
-            logger.info("Camera frame rate set to 5 fps")
         } catch {
-            logger.warning("Could not configure frame rate: \(error.localizedDescription)")
+            logger.warning("Could not set frame rate: \(error.localizedDescription)")
         }
 
-        // Start running
         session.startRunning()
         let isRunning = session.isRunning
-        logger.info("Session startRunning() called, isRunning: \(isRunning)")
+        logger.notice("Session started, isRunning: \(isRunning), preset: \(session.sessionPreset.rawValue)")
 
         Task { @MainActor [weak self] in
             if isRunning {
                 self?.session = session
                 self?.status = .running
-                logger.info("WebcamMonitor status set to running")
             } else {
                 self?.status = .error
-                logger.error("Session failed to start running")
             }
         }
     }
@@ -184,7 +172,7 @@ final class WebcamMonitor {
         if isDrinking {
             consecutivePositiveFrames += 1
             if consecutivePositiveFrames >= requiredConsecutiveFrames {
-                logger.info("Drinking detected! (3 consecutive positive frames)")
+                logger.notice("Drinking detected! (\(self.requiredConsecutiveFrames) consecutive frames)")
                 consecutivePositiveFrames = 0
                 onDrinkingDetected?()
             }
@@ -199,8 +187,15 @@ final class WebcamMonitor {
 private final class CaptureDelegate: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate, @unchecked Sendable {
     var onFrameAnalyzed: ((Bool) -> Void)?
 
-    private let bodyPoseRequest = VNDetectHumanBodyPoseRequest()
+    private let faceRequest = VNDetectFaceRectanglesRequest()
+    private let handRequest = VNDetectHumanHandPoseRequest()
     private var frameCount = 0
+    private var lastLogFrame = 0
+
+    override init() {
+        handRequest.maximumHandCount = 2
+        super.init()
+    }
 
     func captureOutput(
         _ output: AVCaptureOutput,
@@ -209,57 +204,85 @@ private final class CaptureDelegate: NSObject, AVCaptureVideoDataOutputSampleBuf
     ) {
         frameCount += 1
         if frameCount == 1 {
-            logger.info("First frame received from camera")
+            logger.notice("First frame received from camera")
         }
 
         guard let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
 
         let handler = VNImageRequestHandler(cvPixelBuffer: pixelBuffer, options: [:])
         do {
-            try handler.perform([bodyPoseRequest])
+            try handler.perform([faceRequest, handRequest])
         } catch {
-            if frameCount <= 3 {
-                logger.error("Vision request failed: \(error.localizedDescription)")
-            }
             return
         }
 
-        let isDrinking = analyzePoseForDrinking()
+        let isDrinking = detectDrinkingGesture()
         onFrameAnalyzed?(isDrinking)
     }
 
-    /// Detect drinking heuristic: wrist is raised near the nose/face level.
+    /// Detect drinking by checking if a hand wrist is near or overlapping the face region.
     ///
-    /// In Vision's coordinate system, Y increases upward (0 = bottom, 1 = top).
-    /// A drinking gesture means the wrist is at approximately the same height
-    /// or above the nose, and relatively close horizontally.
-    private func analyzePoseForDrinking() -> Bool {
-        guard let results = bodyPoseRequest.results, let pose = results.first else {
+    /// Uses face rectangle + hand pose wrist position. When someone brings a
+    /// bottle/glass to their mouth, the wrist overlaps or is very close to
+    /// the face bounding box.
+    private func detectDrinkingGesture() -> Bool {
+        guard let faces = faceRequest.results, let face = faces.first else {
+            logPeriodically("No face detected")
             return false
         }
 
-        guard let nose = try? pose.recognizedPoint(.nose),
-              nose.confidence > 0.3 else {
+        guard let hands = handRequest.results, !hands.isEmpty else {
+            logPeriodically("Face detected, no hands")
             return false
         }
 
-        let wrists: [VNHumanBodyPoseObservation.JointName] = [.rightWrist, .leftWrist]
+        // Face bounding box (normalized 0-1 coordinates, origin at bottom-left)
+        let faceBox = face.boundingBox
 
-        for wristName in wrists {
-            guard let wrist = try? pose.recognizedPoint(wristName),
+        // Expand the face region to catch hands near the face (drinking zone)
+        // Expand more downward (for chin/mouth area) and to the sides
+        let expandX: CGFloat = faceBox.width * 0.5
+        let expandUp: CGFloat = faceBox.height * 0.3
+        let expandDown: CGFloat = faceBox.height * 0.5
+        let drinkZone = CGRect(
+            x: faceBox.minX - expandX,
+            y: faceBox.minY - expandDown,
+            width: faceBox.width + expandX * 2,
+            height: faceBox.height + expandUp + expandDown
+        )
+
+        for hand in hands {
+            // Get wrist position
+            guard let wrist = try? hand.recognizedPoint(.wrist),
                   wrist.confidence > 0.3 else {
                 continue
             }
 
-            let verticalDiff = wrist.location.y - nose.location.y
-            let horizontalDist = abs(wrist.location.x - nose.location.x)
+            let wristPoint = wrist.location
 
-            // Wrist is near or above nose level and within horizontal range
-            if verticalDiff > -0.15 && horizontalDist < 0.20 {
+            if drinkZone.contains(wristPoint) {
+                logPeriodically("MATCH: wrist at (\(String(format: "%.2f", wristPoint.x)),\(String(format: "%.2f", wristPoint.y))) in drink zone \(String(format: "(%.2f,%.2f)-(%.2f,%.2f)", drinkZone.minX, drinkZone.minY, drinkZone.maxX, drinkZone.maxY))")
+                return true
+            }
+
+            // Also check middle finger MCP (base of middle finger) —
+            // when holding a bottle, this joint is often closer to the face
+            if let middleMCP = try? hand.recognizedPoint(.middleMCP),
+               middleMCP.confidence > 0.3,
+               drinkZone.contains(middleMCP.location) {
+                logPeriodically("MATCH: middleMCP near face")
                 return true
             }
         }
 
+        logPeriodically("Face + hands, no overlap. Face=(\(String(format: "%.2f,%.2f", faceBox.midX, faceBox.midY))) wrists=\(hands.compactMap { try? $0.recognizedPoint(.wrist) }.map { "(\(String(format: "%.2f,%.2f", $0.location.x, $0.location.y)))" }.joined(separator: ","))")
         return false
+    }
+
+    private func logPeriodically(_ message: String) {
+        if frameCount - lastLogFrame >= 25 {
+            lastLogFrame = frameCount
+            logger.notice("\(message) (frame \(self.frameCount))")
+        }
     }
 }
