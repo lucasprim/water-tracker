@@ -5,15 +5,23 @@
   "status": "in_progress",
   "created": "2026-03-02T00:00:00Z",
   "updated": "2026-03-02T00:00:00Z",
-  "current_phase": 1,
-  "current_task": "1.1",
+  "current_phase": 7,
+  "current_task": "7.6",
   "phases": {
     "total": 7,
-    "completed": 0
+    "completed": 6
   },
   "tasks": {
     "total": 33,
-    "completed": 0
+    "completed": 32
   },
-  "commits": []
+  "commits": [
+    "6a1729f: feat: scaffold macOS project with MenuBarExtra and placeholder popover",
+    "df0b2f5: feat(models): add SwiftData models and DailyProgressStore with tests",
+    "0357cda: feat(ui): add animated water cup popover with Log Bottle button",
+    "7d7ceb0: feat(settings): add settings screen with bottle size, goal, and interval",
+    "1f40132: feat(timer): add drink reminder timer with notifications",
+    "dfa1293: feat(webcam): add Vision-based drinking detection with debounce",
+    "d20c5ac: feat(polish): tune cup animation, add midnight rollover, refine UI"
+  ]
 }
