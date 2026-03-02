@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		0245D5CEA9AF825D286C0A5D /* WaterTrackerApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB1EAD9712CA07B5D94F5EF6 /* WaterTrackerApp.swift */; };
 		33B0F7EEAC31A7A0C0D24C6F /* DailyProgressStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D42E56F1EF6754125985224 /* DailyProgressStore.swift */; };
+		3C53C5594FCD2504DAEB8599 /* WaterCupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9692B60AE615CFA9B56D063A /* WaterCupView.swift */; };
 		3EC6FF6CABD4672D9906C0A7 /* WaterEntry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7FC99214F72672A21A971491 /* WaterEntry.swift */; };
 		5DEF38C98287116931BE5EF9 /* AppSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D646925D6EDFCBD4BC0D160 /* AppSettings.swift */; };
 		AE7E69E685E5367AF7E02B9E /* WaterTrackerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5FB2A81CECD2E4D0015154FC /* WaterTrackerTests.swift */; };
@@ -38,6 +39,7 @@
 		7D646925D6EDFCBD4BC0D160 /* AppSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettings.swift; sourceTree = "<group>"; };
 		7FC99214F72672A21A971491 /* WaterEntry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WaterEntry.swift; sourceTree = "<group>"; };
 		83BFE5C055BF9AD72EE6FBEE /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		9692B60AE615CFA9B56D063A /* WaterCupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WaterCupView.swift; sourceTree = "<group>"; };
 		97CC81C662AD46C3E62327E6 /* PopoverContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PopoverContentView.swift; sourceTree = "<group>"; };
 		9DB159053107388D9B89CFBA /* WaterTracker.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = WaterTracker.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		FB1EAD9712CA07B5D94F5EF6 /* WaterTrackerApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WaterTrackerApp.swift; sourceTree = "<group>"; };
@@ -108,6 +110,7 @@
 			isa = PBXGroup;
 			children = (
 				97CC81C662AD46C3E62327E6 /* PopoverContentView.swift */,
+				9692B60AE615CFA9B56D063A /* WaterCupView.swift */,
 			);
 			path = MenuBar;
 			sourceTree = "<group>";
@@ -216,6 +219,7 @@
 				33B0F7EEAC31A7A0C0D24C6F /* DailyProgressStore.swift in Sources */,
 				F25DE17918433804B6A17BD6 /* EntrySource.swift in Sources */,
 				CDE2E32115A29E4D2C8D8478 /* PopoverContentView.swift in Sources */,
+				3C53C5594FCD2504DAEB8599 /* WaterCupView.swift in Sources */,
 				3EC6FF6CABD4672D9906C0A7 /* WaterEntry.swift in Sources */,
 				0245D5CEA9AF825D286C0A5D /* WaterTrackerApp.swift in Sources */,
 			);
