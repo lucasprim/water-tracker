@@ -10,6 +10,7 @@ final class AppCoordinator {
     private(set) var isFlashingBlue = false
     private let modelContext: ModelContext
     private var store: DailyProgressStore?
+    private var dayChangeObserver: NSObjectProtocol?
 
     init(timerManager: DrinkTimerManager, webcamMonitor: WebcamMonitor, modelContext: ModelContext) {
         self.timerManager = timerManager
@@ -37,6 +38,8 @@ final class AppCoordinator {
         if !progressStore.isGoalReached {
             webcamMonitor.start()
         }
+
+        observeDayChange()
     }
 
     func handleBottleLogged(isGoalReached: Bool) {
@@ -46,6 +49,31 @@ final class AppCoordinator {
         } else {
             let interval = loadDrinkInterval()
             timerManager.start(intervalMinutes: interval)
+        }
+    }
+
+    // MARK: - Midnight Rollover
+
+    private func observeDayChange() {
+        dayChangeObserver = NotificationCenter.default.addObserver(
+            forName: .NSCalendarDayChanged,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in
+                self?.handleDayChange()
+            }
+        }
+    }
+
+    private func handleDayChange() {
+        store?.refresh()
+
+        let interval = loadDrinkInterval()
+        timerManager.start(intervalMinutes: interval)
+
+        if webcamMonitor.status != .running && webcamMonitor.status != .denied {
+            webcamMonitor.start()
         }
     }
 
