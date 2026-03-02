@@ -5,7 +5,7 @@ import Observation
 @MainActor
 @Observable
 final class DailyProgressStore {
-    private let modelContext: ModelContext
+    let modelContext: ModelContext
 
     private(set) var todayTotalMl: Double = 0
     private(set) var goalMl: Double = 2000

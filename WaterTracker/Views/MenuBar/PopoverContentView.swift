@@ -4,11 +4,12 @@ import SwiftData
 struct PopoverContentView: View {
     @Environment(\.modelContext) private var modelContext
     @State private var store: DailyProgressStore?
+    var timerManager: DrinkTimerManager
 
     var body: some View {
         Group {
             if let store {
-                PopoverBody(store: store)
+                PopoverBody(store: store, timerManager: timerManager)
             } else {
                 ProgressView()
                     .frame(width: 280, height: 300)
@@ -26,6 +27,7 @@ struct PopoverContentView: View {
 
 private struct PopoverBody: View {
     @Bindable var store: DailyProgressStore
+    var timerManager: DrinkTimerManager
     @State private var showingSettings = false
 
     var body: some View {
@@ -49,6 +51,8 @@ private struct PopoverBody: View {
         .sheet(isPresented: $showingSettings) {
             SettingsView {
                 store.refresh()
+                timerManager.start(intervalMinutes: Int(store.bottleSizeMl > 0 ? 15 : 15))
+                reloadTimerInterval()
             }
         }
     }
@@ -65,6 +69,11 @@ private struct PopoverBody: View {
     private var logButton: some View {
         Button {
             store.logBottle()
+            if store.isGoalReached {
+                timerManager.stop()
+            } else {
+                reloadTimerInterval()
+            }
         } label: {
             Label("Log Bottle", systemImage: "plus.circle.fill")
                 .font(.headline)
@@ -112,9 +121,19 @@ private struct PopoverBody: View {
         formatter.groupingSeparator = " "
         return formatter.string(from: NSNumber(value: value)) ?? "\(value)"
     }
+
+    @MainActor
+    private func reloadTimerInterval() {
+        let descriptor = FetchDescriptor<AppSettings>()
+        if let settings = try? store.modelContext.fetch(descriptor).first {
+            timerManager.start(intervalMinutes: settings.drinkIntervalMinutes)
+        } else {
+            timerManager.reset()
+        }
+    }
 }
 
 #Preview {
-    PopoverContentView()
+    PopoverContentView(timerManager: DrinkTimerManager())
         .modelContainer(for: [WaterEntry.self, AppSettings.self], inMemory: true)
 }

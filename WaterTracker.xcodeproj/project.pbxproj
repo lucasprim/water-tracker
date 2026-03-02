@@ -8,11 +8,15 @@
 
 /* Begin PBXBuildFile section */
 		0245D5CEA9AF825D286C0A5D /* WaterTrackerApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB1EAD9712CA07B5D94F5EF6 /* WaterTrackerApp.swift */; };
+		155740147EA37C315168C5B1 /* DrinkTimerManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D90B1049ECA1CB7F4FC6A83 /* DrinkTimerManager.swift */; };
 		33B0F7EEAC31A7A0C0D24C6F /* DailyProgressStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D42E56F1EF6754125985224 /* DailyProgressStore.swift */; };
 		3C53C5594FCD2504DAEB8599 /* WaterCupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9692B60AE615CFA9B56D063A /* WaterCupView.swift */; };
+		3DDA863C194E3AE0F71230F5 /* DrinkTimerManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43CD7FE47218F8042B598D87 /* DrinkTimerManagerTests.swift */; };
 		3EC6FF6CABD4672D9906C0A7 /* WaterEntry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7FC99214F72672A21A971491 /* WaterEntry.swift */; };
+		5D7A4913FACBEAF54C79644C /* AppCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3482200388FC9196A0884640 /* AppCoordinator.swift */; };
 		5DEF38C98287116931BE5EF9 /* AppSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D646925D6EDFCBD4BC0D160 /* AppSettings.swift */; };
 		AE7E69E685E5367AF7E02B9E /* WaterTrackerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5FB2A81CECD2E4D0015154FC /* WaterTrackerTests.swift */; };
+		AF03542B65AC47ABDA949061 /* NotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F3BD7410B2FC202ACE26027 /* NotificationService.swift */; };
 		CDE2E32115A29E4D2C8D8478 /* PopoverContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 97CC81C662AD46C3E62327E6 /* PopoverContentView.swift */; };
 		EE57E38837762440B5FF87E9 /* DailyProgressStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3334FAD20CC92BFA57AC4CEC /* DailyProgressStoreTests.swift */; };
 		F25DE17918433804B6A17BD6 /* EntrySource.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F29014985ECF8520A61D9C6 /* EntrySource.swift */; };
@@ -32,8 +36,12 @@
 
 /* Begin PBXFileReference section */
 		0D42E56F1EF6754125985224 /* DailyProgressStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyProgressStore.swift; sourceTree = "<group>"; };
+		0F3BD7410B2FC202ACE26027 /* NotificationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationService.swift; sourceTree = "<group>"; };
+		1D90B1049ECA1CB7F4FC6A83 /* DrinkTimerManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DrinkTimerManager.swift; sourceTree = "<group>"; };
 		3334FAD20CC92BFA57AC4CEC /* DailyProgressStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyProgressStoreTests.swift; sourceTree = "<group>"; };
+		3482200388FC9196A0884640 /* AppCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppCoordinator.swift; sourceTree = "<group>"; };
 		35A6750DD947BC79625010F8 /* WaterTrackerTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = WaterTrackerTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		43CD7FE47218F8042B598D87 /* DrinkTimerManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DrinkTimerManagerTests.swift; sourceTree = "<group>"; };
 		4F29014985ECF8520A61D9C6 /* EntrySource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EntrySource.swift; sourceTree = "<group>"; };
 		5B25B361188D71E2AD89E217 /* WaterTracker.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = WaterTracker.entitlements; sourceTree = "<group>"; };
 		5FB2A81CECD2E4D0015154FC /* WaterTrackerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WaterTrackerTests.swift; sourceTree = "<group>"; };
@@ -53,6 +61,7 @@
 			isa = PBXGroup;
 			children = (
 				3334FAD20CC92BFA57AC4CEC /* DailyProgressStoreTests.swift */,
+				43CD7FE47218F8042B598D87 /* DrinkTimerManagerTests.swift */,
 				5FB2A81CECD2E4D0015154FC /* WaterTrackerTests.swift */,
 			);
 			path = WaterTrackerTests;
@@ -86,6 +95,7 @@
 				F23524267AAAF46D60DDED1B /* App */,
 				2AEA64D8C4DB374FC64A6D86 /* Models */,
 				56417B73F4364157D7CCF2B6 /* Resources */,
+				78DD4F9FC5191406B94393D1 /* Services */,
 				C739B9C49E0E68EF068155A2 /* Views */,
 			);
 			path = WaterTracker;
@@ -106,6 +116,15 @@
 				35A6750DD947BC79625010F8 /* WaterTrackerTests.xctest */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		78DD4F9FC5191406B94393D1 /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				1D90B1049ECA1CB7F4FC6A83 /* DrinkTimerManager.swift */,
+				0F3BD7410B2FC202ACE26027 /* NotificationService.swift */,
+			);
+			path = Services;
 			sourceTree = "<group>";
 		};
 		96452AE526B57D51B3482FF1 /* Settings */ = {
@@ -137,6 +156,7 @@
 		F23524267AAAF46D60DDED1B /* App */ = {
 			isa = PBXGroup;
 			children = (
+				3482200388FC9196A0884640 /* AppCoordinator.swift */,
 				FB1EAD9712CA07B5D94F5EF6 /* WaterTrackerApp.swift */,
 			);
 			path = App;
@@ -226,9 +246,12 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				5D7A4913FACBEAF54C79644C /* AppCoordinator.swift in Sources */,
 				5DEF38C98287116931BE5EF9 /* AppSettings.swift in Sources */,
 				33B0F7EEAC31A7A0C0D24C6F /* DailyProgressStore.swift in Sources */,
+				155740147EA37C315168C5B1 /* DrinkTimerManager.swift in Sources */,
 				F25DE17918433804B6A17BD6 /* EntrySource.swift in Sources */,
+				AF03542B65AC47ABDA949061 /* NotificationService.swift in Sources */,
 				CDE2E32115A29E4D2C8D8478 /* PopoverContentView.swift in Sources */,
 				FE004EBD46FDC7A82038B7F0 /* SettingsView.swift in Sources */,
 				3C53C5594FCD2504DAEB8599 /* WaterCupView.swift in Sources */,
@@ -242,6 +265,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				EE57E38837762440B5FF87E9 /* DailyProgressStoreTests.swift in Sources */,
+				3DDA863C194E3AE0F71230F5 /* DrinkTimerManagerTests.swift in Sources */,
 				AE7E69E685E5367AF7E02B9E /* WaterTrackerTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
