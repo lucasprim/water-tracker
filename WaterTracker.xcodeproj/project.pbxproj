@@ -17,6 +17,7 @@
 		EE57E38837762440B5FF87E9 /* DailyProgressStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3334FAD20CC92BFA57AC4CEC /* DailyProgressStoreTests.swift */; };
 		F25DE17918433804B6A17BD6 /* EntrySource.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F29014985ECF8520A61D9C6 /* EntrySource.swift */; };
 		F284AD3B0511B33492FF7FAC /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = FE16D539EFC04F5511FA9C75 /* Assets.xcassets */; };
+		FE004EBD46FDC7A82038B7F0 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F27C9CF8160F53A98AB362DB /* SettingsView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -42,6 +43,7 @@
 		9692B60AE615CFA9B56D063A /* WaterCupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WaterCupView.swift; sourceTree = "<group>"; };
 		97CC81C662AD46C3E62327E6 /* PopoverContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PopoverContentView.swift; sourceTree = "<group>"; };
 		9DB159053107388D9B89CFBA /* WaterTracker.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = WaterTracker.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		F27C9CF8160F53A98AB362DB /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		FB1EAD9712CA07B5D94F5EF6 /* WaterTrackerApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WaterTrackerApp.swift; sourceTree = "<group>"; };
 		FE16D539EFC04F5511FA9C75 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -106,6 +108,14 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
+		96452AE526B57D51B3482FF1 /* Settings */ = {
+			isa = PBXGroup;
+			children = (
+				F27C9CF8160F53A98AB362DB /* SettingsView.swift */,
+			);
+			path = Settings;
+			sourceTree = "<group>";
+		};
 		AC2FE9B1AA7DCD50F3A744FD /* MenuBar */ = {
 			isa = PBXGroup;
 			children = (
@@ -119,6 +129,7 @@
 			isa = PBXGroup;
 			children = (
 				AC2FE9B1AA7DCD50F3A744FD /* MenuBar */,
+				96452AE526B57D51B3482FF1 /* Settings */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -219,6 +230,7 @@
 				33B0F7EEAC31A7A0C0D24C6F /* DailyProgressStore.swift in Sources */,
 				F25DE17918433804B6A17BD6 /* EntrySource.swift in Sources */,
 				CDE2E32115A29E4D2C8D8478 /* PopoverContentView.swift in Sources */,
+				FE004EBD46FDC7A82038B7F0 /* SettingsView.swift in Sources */,
 				3C53C5594FCD2504DAEB8599 /* WaterCupView.swift in Sources */,
 				3EC6FF6CABD4672D9906C0A7 /* WaterEntry.swift in Sources */,
 				0245D5CEA9AF825D286C0A5D /* WaterTrackerApp.swift in Sources */,

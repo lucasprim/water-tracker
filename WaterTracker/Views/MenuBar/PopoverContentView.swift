@@ -26,6 +26,7 @@ struct PopoverContentView: View {
 
 private struct PopoverBody: View {
     @Bindable var store: DailyProgressStore
+    @State private var showingSettings = false
 
     var body: some View {
         VStack(spacing: 16) {
@@ -38,9 +39,18 @@ private struct PopoverBody: View {
             } else {
                 logButton
             }
+
+            Divider()
+
+            settingsButton
         }
         .padding(24)
         .frame(width: 280)
+        .sheet(isPresented: $showingSettings) {
+            SettingsView {
+                store.refresh()
+            }
+        }
     }
 
     // MARK: - Subviews
@@ -75,6 +85,17 @@ private struct PopoverBody: View {
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
         }
+    }
+
+    private var settingsButton: some View {
+        Button {
+            showingSettings = true
+        } label: {
+            Label("Settings", systemImage: "gearshape")
+                .font(.subheadline)
+        }
+        .buttonStyle(.plain)
+        .foregroundStyle(.secondary)
     }
 
     // MARK: - Helpers
