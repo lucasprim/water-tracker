@@ -2,7 +2,6 @@ import SwiftUI
 import SwiftData
 
 struct SettingsView: View {
-    @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
 
     @State private var bottleSizeMl: Double = 500
@@ -10,6 +9,7 @@ struct SettingsView: View {
     @State private var drinkIntervalMinutes: Int = 15
 
     var onSave: (() -> Void)?
+    var onCancel: (() -> Void)?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -33,7 +33,7 @@ struct SettingsView: View {
 
     private var header: some View {
         HStack {
-            Button("Cancel") { dismiss() }
+            Button("Cancel") { onCancel?() }
                 .buttonStyle(.plain)
                 .foregroundStyle(.secondary)
             Spacer()
@@ -137,7 +137,6 @@ struct SettingsView: View {
         }
         try? modelContext.save()
         onSave?()
-        dismiss()
     }
 }
 

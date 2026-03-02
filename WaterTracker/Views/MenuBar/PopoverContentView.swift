@@ -4,13 +4,30 @@ import SwiftData
 struct PopoverContentView: View {
     @Environment(\.modelContext) private var modelContext
     @State private var store: DailyProgressStore?
+    @State private var showingSettings = false
     var timerManager: DrinkTimerManager
     var webcamMonitor: WebcamMonitor
 
     var body: some View {
         Group {
             if let store {
-                PopoverBody(store: store, timerManager: timerManager, webcamMonitor: webcamMonitor)
+                if showingSettings {
+                    SettingsView {
+                        store.refresh()
+                        reloadTimerInterval()
+                        showingSettings = false
+                    } onCancel: {
+                        showingSettings = false
+                    }
+                    .environment(\.modelContext, modelContext)
+                } else {
+                    PopoverBody(
+                        store: store,
+                        timerManager: timerManager,
+                        webcamMonitor: webcamMonitor,
+                        onOpenSettings: { showingSettings = true }
+                    )
+                }
             } else {
                 ProgressView()
                     .frame(width: 280, height: 300)
@@ -22,6 +39,17 @@ struct PopoverContentView: View {
             }
         }
     }
+
+    @MainActor
+    private func reloadTimerInterval() {
+        guard let store else { return }
+        let descriptor = FetchDescriptor<AppSettings>()
+        if let settings = try? store.modelContext.fetch(descriptor).first {
+            timerManager.start(intervalMinutes: settings.drinkIntervalMinutes)
+        } else {
+            timerManager.reset()
+        }
+    }
 }
 
 // MARK: - Popover Body
@@ -30,7 +58,7 @@ private struct PopoverBody: View {
     @Bindable var store: DailyProgressStore
     var timerManager: DrinkTimerManager
     var webcamMonitor: WebcamMonitor
-    @State private var showingSettings = false
+    var onOpenSettings: () -> Void
 
     var body: some View {
         VStack(spacing: 16) {
@@ -54,12 +82,6 @@ private struct PopoverBody: View {
         }
         .padding(24)
         .frame(width: 280)
-        .sheet(isPresented: $showingSettings) {
-            SettingsView {
-                store.refresh()
-                reloadTimerInterval()
-            }
-        }
     }
 
     // MARK: - Subviews
@@ -121,7 +143,7 @@ private struct PopoverBody: View {
 
     private var settingsButton: some View {
         Button {
-            showingSettings = true
+            onOpenSettings()
         } label: {
             Label("Settings", systemImage: "gearshape")
                 .font(.subheadline)
