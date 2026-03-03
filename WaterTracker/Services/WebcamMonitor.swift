@@ -472,11 +472,11 @@ final class WebcamMonitor {
 
 private final class CaptureDelegate: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate, @unchecked Sendable {
     /// Callback: (isDrinking, logEntry)
-    var onFrameAnalyzed: ((Bool, String) -> Void)?
+    var onFrameAnalyzed: (@Sendable (Bool, String) -> Void)?
     /// Callback for preview frames: (CGImage, FrameOverlay)
-    var onPreviewFrame: ((CGImage, FrameOverlay) -> Void)?
+    var onPreviewFrame: (@Sendable (CGImage, FrameOverlay) -> Void)?
     /// Callback for testing signals
-    var onTestingSignals: ((DetectionSignals) -> Void)?
+    var onTestingSignals: (@Sendable (DetectionSignals) -> Void)?
     /// Whether preview mode is active
     var previewEnabled = false
     /// Whether testing mode is active
