@@ -38,9 +38,13 @@ Or open `WaterTracker.xcodeproj` in Xcode and hit Run.
 
 Pre-built DMG releases are available on the [Releases](https://github.com/lucasprim/water-tracker/releases) page.
 
-Since the app is not notarized, macOS will block it on first launch. To open it:
-1. Right-click the app and choose **Open**
-2. Or go to **System Settings > Privacy & Security** and click **Open Anyway**
+Since the app is not notarized, macOS will block it on first launch. After dragging the app to `/Applications`, run:
+
+```bash
+xattr -cr "/Applications/Water Tracker.app"
+```
+
+Then double-click to open normally.
 
 ## Privacy
 
