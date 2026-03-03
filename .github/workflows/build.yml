@@ -1,0 +1,61 @@
+name: Build & Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode_16.2.app || sudo xcode-select -s /Applications/Xcode.app
+
+      - name: Build
+        run: |
+          xcodebuild -project WaterTracker.xcodeproj \
+            -scheme WaterTracker \
+            -configuration Release \
+            -derivedDataPath build \
+            CODE_SIGN_IDENTITY="-" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            build
+
+      - name: Package DMG
+        run: |
+          APP_PATH="build/Build/Products/Release/Water Tracker.app"
+          DMG_NAME="WaterTracker-${GITHUB_REF_NAME:-dev}.dmg"
+
+          # Create a temporary folder for DMG contents
+          mkdir -p dmg_contents
+          cp -R "$APP_PATH" dmg_contents/
+          ln -s /Applications dmg_contents/Applications
+
+          # Create DMG
+          hdiutil create -volname "Water Tracker" \
+            -srcfolder dmg_contents \
+            -ov -format UDZO \
+            "$DMG_NAME"
+
+          echo "DMG_NAME=$DMG_NAME" >> "$GITHUB_ENV"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: WaterTracker-dmg
+          path: ${{ env.DMG_NAME }}
+
+      - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            "$DMG_NAME" \
+            --title "Water Tracker $GITHUB_REF_NAME" \
+            --generate-notes
