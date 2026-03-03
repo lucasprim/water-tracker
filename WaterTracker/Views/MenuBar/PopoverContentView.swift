@@ -3,6 +3,7 @@ import SwiftData
 
 struct PopoverContentView: View {
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.openWindow) private var openWindow
     @State private var store: DailyProgressStore?
     @State private var showingSettings = false
     var timerManager: DrinkTimerManager
@@ -12,13 +13,21 @@ struct PopoverContentView: View {
         Group {
             if let store {
                 if showingSettings {
-                    SettingsView {
-                        store.refresh()
-                        reloadTimerInterval()
-                        showingSettings = false
-                    } onCancel: {
-                        showingSettings = false
-                    }
+                    SettingsView(
+                        webcamMonitor: webcamMonitor,
+                        onSave: {
+                            store.refresh()
+                            reloadTimerInterval()
+                            showingSettings = false
+                        },
+                        onCancel: {
+                            showingSettings = false
+                        },
+                        onOpenCalibration: {
+                            NSApp.activate(ignoringOtherApps: true)
+                            openWindow(id: "calibration")
+                        }
+                    )
                     .environment(\.modelContext, modelContext)
                 } else {
                     PopoverBody(
@@ -110,6 +119,16 @@ private struct PopoverBody: View {
         .buttonStyle(.borderedProminent)
         .tint(.blue)
         .controlSize(.large)
+        .contextMenu {
+            Button("Undo Last Bottle", role: .destructive) {
+                store.unlogBottle()
+                if !store.isGoalReached {
+                    reloadTimerInterval()
+                    webcamMonitor.start()
+                }
+            }
+            .disabled(store.todayTotalMl <= 0)
+        }
     }
 
     private var goalReachedView: some View {

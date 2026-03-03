@@ -8,8 +8,10 @@ struct SettingsView: View {
     @State private var dailyGoalMl: Double = 2000
     @State private var drinkIntervalMinutes: Int = 15
 
+    var webcamMonitor: WebcamMonitor?
     var onSave: (() -> Void)?
     var onCancel: (() -> Void)?
+    var onOpenCalibration: (() -> Void)?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -19,6 +21,9 @@ struct SettingsView: View {
                 bottleSizeSection
                 dailyGoalSection
                 drinkIntervalSection
+                if let webcamMonitor {
+                    webcamDetectionSection(webcamMonitor)
+                }
             }
             .formStyle(.grouped)
             .scrollContentBackground(.hidden)
@@ -52,26 +57,24 @@ struct SettingsView: View {
 
     private var bottleSizeSection: some View {
         Section("Bottle Size") {
-            Stepper(
-                value: $bottleSizeMl,
-                in: 100...2000,
-                step: 50
-            ) {
-                Text("\(Int(bottleSizeMl)) ml")
+            HStack {
+                TextField("ml", value: $bottleSizeMl, format: .number)
                     .monospacedDigit()
+                    .textFieldStyle(.roundedBorder)
+                Text("ml")
+                    .foregroundStyle(.secondary)
             }
         }
     }
 
     private var dailyGoalSection: some View {
         Section("Daily Goal") {
-            Stepper(
-                value: $dailyGoalMl,
-                in: 500...10000,
-                step: 250
-            ) {
-                Text("\(Int(dailyGoalMl)) ml")
+            HStack {
+                TextField("ml", value: $dailyGoalMl, format: .number)
                     .monospacedDigit()
+                    .textFieldStyle(.roundedBorder)
+                Text("ml")
+                    .foregroundStyle(.secondary)
             }
 
             if dailyGoalMl < bottleSizeMl {
@@ -84,15 +87,45 @@ struct SettingsView: View {
 
     private var drinkIntervalSection: some View {
         Section("Drink Reminder") {
-            Stepper(
-                value: $drinkIntervalMinutes,
-                in: 1...120,
-                step: 5
-            ) {
-                Text("\(drinkIntervalMinutes) min")
+            HStack {
+                TextField("min", value: $drinkIntervalMinutes, format: .number)
                     .monospacedDigit()
+                    .textFieldStyle(.roundedBorder)
+                Text("min")
+                    .foregroundStyle(.secondary)
             }
         }
+    }
+
+    private func webcamDetectionSection(_ monitor: WebcamMonitor) -> some View {
+        Section("Webcam Detection") {
+            Button("Open Calibration...") {
+                onOpenCalibration?()
+            }
+            detectionLogView(monitor)
+        }
+    }
+
+    private func detectionLogView(_ monitor: WebcamMonitor) -> some View {
+        ScrollView {
+            LazyVStack(alignment: .leading, spacing: 2) {
+                ForEach(Array(monitor.detectionLog.suffix(30).enumerated()), id: \.offset) { _, entry in
+                    Text(entry)
+                        .font(.system(.caption2, design: .monospaced))
+                        .foregroundStyle(logEntryColor(entry))
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .frame(height: 120)
+        .defaultScrollAnchor(.bottom)
+    }
+
+    private func logEntryColor(_ entry: String) -> Color {
+        if entry.contains("TRIGGERED") { return .red }
+        if entry.contains("DRINK(bottle") { return .green }
+        if entry.contains("DRINK(hand") || entry.contains("DRINK(occluded") { return .orange }
+        return .secondary
     }
 
     private var footer: some View {
@@ -138,6 +171,7 @@ struct SettingsView: View {
         try? modelContext.save()
         onSave?()
     }
+
 }
 
 #Preview {

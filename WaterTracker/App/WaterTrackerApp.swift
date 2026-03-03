@@ -25,23 +25,33 @@ struct WaterTrackerApp: App {
             PopoverContentView(timerManager: timerManager, webcamMonitor: webcamMonitor)
                 .modelContainer(container)
                 .onAppear {
-                    guard appCoordinator == nil else { return }
-                    logger.notice("Starting AppCoordinator from popover onAppear...")
-                    let coordinator = AppCoordinator(
-                        timerManager: timerManager,
-                        webcamMonitor: webcamMonitor,
-                        modelContext: container.mainContext
-                    )
-                    coordinator.start()
-                    appCoordinator = coordinator
+                    if let coordinator = appCoordinator {
+                        coordinator.dismissReminder()
+                    } else {
+                        logger.notice("Starting AppCoordinator from popover onAppear...")
+                        let coordinator = AppCoordinator(
+                            timerManager: timerManager,
+                            webcamMonitor: webcamMonitor,
+                            modelContext: container.mainContext
+                        )
+                        coordinator.start()
+                        appCoordinator = coordinator
+                    }
                 }
         } label: {
             MenuBarLabel(
                 timerManager: timerManager,
-                isFlashing: appCoordinator?.isFlashingBlue ?? false
+                webcamMonitor: webcamMonitor
             )
         }
         .menuBarExtraStyle(.window)
+
+        Window("Calibrate Detection", id: "calibration") {
+            CalibrationWindow(webcamMonitor: webcamMonitor)
+                .modelContainer(container)
+        }
+        .windowResizability(.contentSize)
+        .defaultSize(width: 700, height: 500)
     }
 }
 
@@ -49,16 +59,38 @@ struct WaterTrackerApp: App {
 
 private struct MenuBarLabel: View {
     let timerManager: DrinkTimerManager
-    var isFlashing: Bool = false
+    var webcamMonitor: WebcamMonitor
 
     var body: some View {
         HStack(spacing: 4) {
-            Image(systemName: "drop.fill")
-                .foregroundStyle(isFlashing ? .blue : .primary)
+            if webcamMonitor.isDrinkingActive {
+                Image(nsImage: Self.coloredDropImage)
+            } else {
+                Image(systemName: "drop.fill")
+            }
             if !timerManager.formattedTimeRemaining.isEmpty {
                 Text(timerManager.formattedTimeRemaining)
                     .monospacedDigit()
             }
         }
     }
+
+    /// Pre-rendered blue drop icon marked as non-template so macOS won't strip the color.
+    private static let coloredDropImage: NSImage = {
+        let symbol = NSImage(systemSymbolName: "drop.fill", accessibilityDescription: "Water drop")!
+        let config = NSImage.SymbolConfiguration(pointSize: 14, weight: .regular)
+        let configured = symbol.withSymbolConfiguration(config)!
+
+        let size = configured.size
+        let image = NSImage(size: size, flipped: false) { rect in
+            NSColor.systemBlue.set()
+            configured.draw(in: rect, from: .zero, operation: .sourceOver, fraction: 1.0)
+            // Tint by drawing color over the symbol using sourceAtop
+            NSColor.systemBlue.set()
+            rect.fill(using: .sourceAtop)
+            return true
+        }
+        image.isTemplate = false
+        return image
+    }()
 }

@@ -32,6 +32,22 @@ final class DailyProgressStore {
         refresh()
     }
 
+    func unlogBottle() {
+        let startOfDay = Calendar.current.startOfDay(for: Date())
+        let predicate = #Predicate<WaterEntry> { entry in
+            entry.timestamp >= startOfDay
+        }
+        var descriptor = FetchDescriptor<WaterEntry>(predicate: predicate)
+        descriptor.sortBy = [SortDescriptor(\.timestamp, order: .reverse)]
+        descriptor.fetchLimit = 1
+
+        if let entry = try? modelContext.fetch(descriptor).first {
+            modelContext.delete(entry)
+            try? modelContext.save()
+        }
+        refresh()
+    }
+
     func refresh() {
         loadSettings()
         loadTodayEntries()

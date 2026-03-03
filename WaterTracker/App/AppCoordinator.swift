@@ -1,18 +1,19 @@
 import Foundation
 import SwiftData
 import Observation
+import os
+
+private let logger = Logger(subsystem: "com.lucasprim.water-tracker", category: "AppCoordinator")
 
 @MainActor
 @Observable
 final class AppCoordinator {
     let timerManager: DrinkTimerManager
     let webcamMonitor: WebcamMonitor
-    private(set) var isFlashingBlue = false
     private let modelContext: ModelContext
-    private var store: DailyProgressStore?
     private var dayChangeObserver: NSObjectProtocol?
     private var lastDetectionTime: Date = .distantPast
-    private let detectionCooldown: TimeInterval = 30 // seconds between webcam detections
+    private let detectionCooldown: TimeInterval = 60
 
     init(timerManager: DrinkTimerManager, webcamMonitor: WebcamMonitor, modelContext: ModelContext) {
         self.timerManager = timerManager
@@ -21,9 +22,6 @@ final class AppCoordinator {
     }
 
     func start() {
-        let progressStore = DailyProgressStore(modelContext: modelContext)
-        self.store = progressStore
-
         NotificationService.shared.requestAuthorization()
 
         let interval = loadDrinkInterval()
@@ -37,21 +35,9 @@ final class AppCoordinator {
             self?.handleDrinkingDetected()
         }
 
-        if !progressStore.isGoalReached {
-            webcamMonitor.start()
-        }
-
+        loadCalibration()
+        webcamMonitor.start()
         observeDayChange()
-    }
-
-    func handleBottleLogged(isGoalReached: Bool) {
-        if isGoalReached {
-            timerManager.stop()
-            webcamMonitor.stop()
-        } else {
-            let interval = loadDrinkInterval()
-            timerManager.start(intervalMinutes: interval)
-        }
     }
 
     // MARK: - Midnight Rollover
@@ -69,8 +55,6 @@ final class AppCoordinator {
     }
 
     private func handleDayChange() {
-        store?.refresh()
-
         let interval = loadDrinkInterval()
         timerManager.start(intervalMinutes: interval)
 
@@ -81,36 +65,45 @@ final class AppCoordinator {
 
     // MARK: - Private
 
-    private func handleDrinkingDetected() {
-        guard let store, !store.isGoalReached else { return }
+    func dismissReminder() {
+        guard ScreenEdgeOverlay.shared.isShowing else { return }
+        ScreenEdgeOverlay.shared.dismiss()
+        let interval = loadDrinkInterval()
+        timerManager.start(intervalMinutes: interval)
+        logger.notice("Reminder dismissed — timer restarted")
+    }
 
-        // Cooldown: ignore detections within 30 seconds of the last one
+    private func handleDrinkingDetected() {
+        // Cooldown: ignore detections within 60 seconds of the last one
         let now = Date()
         guard now.timeIntervalSince(lastDetectionTime) >= detectionCooldown else { return }
         lastDetectionTime = now
 
-        store.logBottle(source: .webcam)
-        flashMenuBarBlue()
+        logger.notice("Drinking detected — resetting timer")
+        dismissReminder()
 
-        if store.isGoalReached {
-            timerManager.stop()
-            webcamMonitor.stop()
-        } else {
-            let interval = loadDrinkInterval()
-            timerManager.start(intervalMinutes: interval)
-        }
+        // Always restart the timer when drinking is detected.
+        let interval = loadDrinkInterval()
+        timerManager.start(intervalMinutes: interval)
     }
 
     private func handleTimerExpired() {
-        NotificationService.shared.postDrinkReminder()
+        ScreenEdgeOverlay.shared.flash()
     }
 
-    private func flashMenuBarBlue() {
-        isFlashingBlue = true
-        Task {
-            try? await Task.sleep(for: .seconds(2))
-            isFlashingBlue = false
-        }
+    private func loadCalibration() {
+        let descriptor = FetchDescriptor<AppSettings>()
+        guard let settings = try? modelContext.fetch(descriptor).first,
+              let baseline = settings.calibratedBaselineQuality,
+              let drop = settings.calibratedDropThreshold else { return }
+        webcamMonitor.loadCalibration(
+            baselineArea: baseline,
+            dropThreshold: drop,
+            bottleHue: settings.bottleColorHue,
+            bottleSaturation: settings.bottleColorSaturation,
+            hueTolerance: settings.bottleColorHueTolerance,
+            satTolerance: settings.bottleColorSatTolerance
+        )
     }
 
     private func loadDrinkInterval() -> Int {

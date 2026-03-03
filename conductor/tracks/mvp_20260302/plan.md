@@ -118,14 +118,14 @@ Add continuous, non-exclusive webcam monitoring using `AVCaptureSession` and `Vi
 - [x] Task 6.1: Implement `WebcamMonitor` — a class that starts a low-resolution (320×240), low-frame-rate (5 fps) `AVCaptureSession` without requesting exclusive access
 - [x] Task 6.2: Add a `AVCaptureVideoDataOutput` delegate that feeds frames into a `VNDetectHumanBodyPoseRequest` to detect raised wrist/hand near face (drinking heuristic)
 - [x] Task 6.3: Implement debounce logic (e.g. 3 consecutive positive frames) to avoid false positives
-- [x] Task 6.4: On confirmed detection: call `DailyProgressStore.logBottle()`, reset `DrinkTimerManager`, and flash the menu bar icon blue for 2 seconds
+- [x] Task 6.4: On confirmed detection: reset `DrinkTimerManager` and flash the menu bar icon blue for 2 seconds (bottle logging is manual only)
 - [x] Task 6.5: Stop `WebcamMonitor` session when daily goal is met; restart each new day
 - [x] Task 6.6: Handle camera permission denial gracefully (show an in-popover message with a link to System Settings)
 - [x] Task 6.7: Verify that FaceTime / Zoom can use the camera simultaneously while `WebcamMonitor` is active
 
 ### Verification
 
-- [x] Webcam runs in background; simulated drinking gesture auto-logs and resets timer; other camera apps work concurrently; denial is handled gracefully
+- [x] Webcam runs in background; drinking gesture resets timer (no auto-log); other camera apps work concurrently; denial is handled gracefully
 
 ---
 
@@ -140,7 +140,7 @@ Tighten up animations, assets, and edge cases; run manual end-to-end testing.
 - [x] Task 7.3: Review all popover layouts for spacing, typography, and dark/light mode correctness
 - [x] Task 7.4: Handle midnight rollover: reset daily entries and restart the timer automatically
 - [x] Task 7.5: Test on macOS 14 and macOS 15 (Sequoia); fix any compatibility issues
-- [ ] Task 7.6: Manual end-to-end test of the full flow: launch → settings → log manually → wait for reminder → simulate webcam detection → hit daily goal
+- [~] Task 7.6: Manual end-to-end test of the full flow: launch → settings → log manually → wait for reminder → simulate webcam detection → hit daily goal
 
 ### Verification
 
