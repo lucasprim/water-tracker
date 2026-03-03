@@ -28,8 +28,19 @@ struct CameraFrameView: View {
                 } else {
                     Rectangle()
                         .fill(.black.opacity(0.3))
-                    Text("No camera feed")
-                        .foregroundStyle(.secondary)
+                    VStack(spacing: 8) {
+                        Image(systemName: "video.slash")
+                            .font(.title2)
+                            .foregroundStyle(.secondary)
+                        Text("No camera feed")
+                            .font(.callout)
+                            .foregroundStyle(.secondary)
+                        Text("Check that your camera is connected and not in use by another app")
+                            .font(.caption)
+                            .foregroundStyle(.tertiary)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal)
+                    }
                 }
             }
         }

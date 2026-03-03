@@ -83,11 +83,17 @@ private struct PopoverBody: View {
 
             if webcamMonitor.status == .denied {
                 cameraDeniedView
+            } else if webcamMonitor.status == .error || webcamMonitor.status == .interrupted {
+                cameraErrorView
             }
 
             Divider()
 
-            settingsButton
+            HStack {
+                settingsButton
+                Spacer()
+                quitButton
+            }
         }
         .padding(24)
         .frame(width: 280)
@@ -170,11 +176,37 @@ private struct PopoverBody: View {
         }
     }
 
+    private var cameraErrorView: some View {
+        VStack(spacing: 6) {
+            Text(webcamMonitor.errorMessage ?? "Camera error")
+                .font(.caption)
+                .foregroundStyle(.orange)
+
+            Button("Retry") {
+                webcamMonitor.retry()
+            }
+            .font(.caption)
+            .buttonStyle(.plain)
+            .foregroundStyle(.blue)
+        }
+    }
+
     private var settingsButton: some View {
         Button {
             onOpenSettings()
         } label: {
             Label("Settings", systemImage: "gearshape")
+                .font(.subheadline)
+        }
+        .buttonStyle(.plain)
+        .foregroundStyle(.secondary)
+    }
+
+    private var quitButton: some View {
+        Button {
+            NSApplication.shared.terminate(nil)
+        } label: {
+            Label("Quit", systemImage: "power")
                 .font(.subheadline)
         }
         .buttonStyle(.plain)

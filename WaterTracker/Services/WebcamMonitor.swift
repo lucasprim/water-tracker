@@ -15,11 +15,26 @@ struct FrameOverlay: Sendable {
     let dominantNonSkinSaturation: Float?
 }
 
+struct DetectionSignals: Sendable {
+    let faceDetected: Bool
+    let faceArea: Float
+    let baseline: Float
+    let handNearFace: Bool
+    let colorMatchRatio: Float      // 0.0–1.0 continuous value
+    let colorMatchThreshold: Float  // 0.05
+    let objectNearFace: Bool
+    let objectLabel: String?
+    let objectConfidence: Float
+    let isDrinking: Bool
+    let triggerReason: String?
+    let colorMatchMask: CGImage?    // semi-transparent red overlay of matched pixels
+}
+
 @MainActor
 @Observable
 final class WebcamMonitor {
     enum CameraStatus: String {
-        case notDetermined, authorized, denied, running, stopped, error
+        case notDetermined, authorized, denied, running, stopped, error, interrupted
     }
 
     enum CalibrationPhase {
@@ -29,6 +44,7 @@ final class WebcamMonitor {
     }
 
     private(set) var status: CameraStatus = .notDetermined
+    private(set) var errorMessage: String?
     private(set) var detectionLog: [String] = []
     private(set) var calibrationPhase: CalibrationPhase = .idle
 
@@ -45,9 +61,14 @@ final class WebcamMonitor {
     private(set) var latestOverlay: FrameOverlay?
     private var previewEnabled = false
 
+    // Testing mode for live calibration verification
+    private(set) var latestDetectionSignals: DetectionSignals?
+    private(set) var latestColorMatchMask: CGImage?
+
     private let sessionQueue = DispatchQueue(label: "com.lucasprim.water-tracker.webcam-session")
     private let captureDelegate = CaptureDelegate()
     private var session: AVCaptureSession?
+    private var sessionObservers: [NSObjectProtocol] = []
     /// Sliding window of recent frame results (true = drinking detected).
     private var recentFrameResults: [Bool] = []
     private let windowSize = 8
@@ -61,11 +82,19 @@ final class WebcamMonitor {
 
     func stop() {
         logger.notice("WebcamMonitor.stop() called")
+        removeSessionObservers()
         let sessionToStop = session
         session = nil
         status = .stopped
+        errorMessage = nil
         recentFrameResults.removeAll()
         sessionQueue.async { sessionToStop?.stopRunning() }
+    }
+
+    func retry() {
+        logger.notice("WebcamMonitor.retry() called, current status: \(self.status.rawValue)")
+        stop()
+        checkPermissionAndStart()
     }
 
     func enablePreview() {
@@ -78,6 +107,27 @@ final class WebcamMonitor {
         captureDelegate.previewEnabled = false
         latestFrame = nil
         latestOverlay = nil
+    }
+
+    func enableTesting() {
+        captureDelegate.testingEnabled = true
+        enablePreview()
+    }
+
+    func disableTesting() {
+        captureDelegate.testingEnabled = false
+        latestDetectionSignals = nil
+        latestColorMatchMask = nil
+    }
+
+    func updateTestingCalibration(baselineArea: Float, bottleHue: Float?, bottleSaturation: Float?, hueTolerance: Float, satTolerance: Float) {
+        captureDelegate.calibratedBaseline = CGFloat(baselineArea)
+        if let hue = bottleHue, let sat = bottleSaturation {
+            captureDelegate.bottleHue = CGFloat(hue)
+            captureDelegate.bottleSaturation = CGFloat(sat)
+        }
+        captureDelegate.bottleHueTolerance = CGFloat(hueTolerance)
+        captureDelegate.bottleSatTolerance = CGFloat(satTolerance)
     }
 
     func loadCalibration(baselineArea: Float, dropThreshold: Float, bottleHue: Float?, bottleSaturation: Float?, hueTolerance: Float? = nil, satTolerance: Float? = nil) {
@@ -203,6 +253,14 @@ final class WebcamMonitor {
             }
         }
 
+        captureDelegate.onTestingSignals = { [weak self] signals in
+            Task { @MainActor in
+                guard let self else { return }
+                self.latestDetectionSignals = signals
+                self.latestColorMatchMask = signals.colorMatchMask
+            }
+        }
+
         sessionQueue.async { [weak self] in
             guard let self else { return }
             self.loadObjectDetectionModel()
@@ -241,7 +299,7 @@ final class WebcamMonitor {
 
         guard let camera = AVCaptureDevice.default(for: .video) else {
             logger.error("No video capture device found")
-            Task { @MainActor in self.status = .error }
+            Task { @MainActor in self.setError("No camera found") }
             session.commitConfiguration()
             return
         }
@@ -252,13 +310,13 @@ final class WebcamMonitor {
                 session.addInput(input)
             } else {
                 logger.error("Cannot add camera input")
-                Task { @MainActor in self.status = .error }
+                Task { @MainActor in self.setError("Cannot connect to camera") }
                 session.commitConfiguration()
                 return
             }
         } catch {
             logger.error("Failed to create camera input: \(error.localizedDescription)")
-            Task { @MainActor in self.status = .error }
+            Task { @MainActor in self.setError("Camera unavailable: \(error.localizedDescription)") }
             session.commitConfiguration()
             return
         }
@@ -276,18 +334,23 @@ final class WebcamMonitor {
             session.addOutput(output)
         } else {
             logger.error("Cannot add video output")
-            Task { @MainActor in self.status = .error }
+            Task { @MainActor in self.setError("Cannot configure camera output") }
             session.commitConfiguration()
             return
         }
 
         session.commitConfiguration()
 
-        // 5 fps to save resources
+        // Use the lowest supported frame rate to save resources
         do {
             try camera.lockForConfiguration()
-            camera.activeVideoMinFrameDuration = CMTime(value: 1, timescale: 5)
-            camera.activeVideoMaxFrameDuration = CMTime(value: 1, timescale: 5)
+            if let minRate = camera.activeFormat.videoSupportedFrameRateRanges.map(\.minFrameRate).min(),
+               minRate > 0 {
+                let duration = CMTime(value: 1, timescale: CMTimeScale(minRate))
+                camera.activeVideoMinFrameDuration = duration
+                camera.activeVideoMaxFrameDuration = duration
+                logger.info("Set frame rate to \(minRate) fps (lowest supported)")
+            }
             camera.unlockForConfiguration()
         } catch {
             logger.warning("Could not set frame rate: \(error.localizedDescription)")
@@ -298,13 +361,77 @@ final class WebcamMonitor {
         logger.notice("Session started, isRunning: \(isRunning), preset: \(session.sessionPreset.rawValue)")
 
         Task { @MainActor [weak self] in
+            guard let self else { return }
             if isRunning {
-                self?.session = session
-                self?.status = .running
+                self.session = session
+                self.status = .running
+                self.errorMessage = nil
+                self.observeSession(session)
             } else {
-                self?.status = .error
+                self.setError("Camera session failed to start")
             }
         }
+    }
+
+    // MARK: - Session Observation
+
+    private func observeSession(_ session: AVCaptureSession) {
+        removeSessionObservers()
+
+        let interruptedObserver = NotificationCenter.default.addObserver(
+            forName: .AVCaptureSessionWasInterrupted,
+            object: session,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in
+                guard let self else { return }
+                let message = "Camera interrupted"
+                logger.warning("Session interrupted")
+                self.status = .interrupted
+                self.errorMessage = message
+            }
+        }
+
+        let resumedObserver = NotificationCenter.default.addObserver(
+            forName: .AVCaptureSessionInterruptionEnded,
+            object: session,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in
+                guard let self else { return }
+                logger.notice("Session interruption ended — resuming")
+                self.status = .running
+                self.errorMessage = nil
+            }
+        }
+
+        let runtimeErrorObserver = NotificationCenter.default.addObserver(
+            forName: .AVCaptureSessionRuntimeError,
+            object: session,
+            queue: .main
+        ) { [weak self] notification in
+            Task { @MainActor in
+                guard let self else { return }
+                let error = notification.userInfo?[AVCaptureSessionErrorKey] as? AVError
+                let message = error?.localizedDescription ?? "Camera error"
+                logger.error("Session runtime error: \(message)")
+                self.setError(message)
+            }
+        }
+
+        sessionObservers = [interruptedObserver, resumedObserver, runtimeErrorObserver]
+    }
+
+    private func removeSessionObservers() {
+        for observer in sessionObservers {
+            NotificationCenter.default.removeObserver(observer)
+        }
+        sessionObservers.removeAll()
+    }
+
+    private func setError(_ message: String) {
+        status = .error
+        errorMessage = message
     }
 
     // MARK: - Detection Logic
@@ -348,8 +475,12 @@ private final class CaptureDelegate: NSObject, AVCaptureVideoDataOutputSampleBuf
     var onFrameAnalyzed: ((Bool, String) -> Void)?
     /// Callback for preview frames: (CGImage, FrameOverlay)
     var onPreviewFrame: ((CGImage, FrameOverlay) -> Void)?
+    /// Callback for testing signals
+    var onTestingSignals: ((DetectionSignals) -> Void)?
     /// Whether preview mode is active
     var previewEnabled = false
+    /// Whether testing mode is active
+    var testingEnabled = false
 
     // Vision requests
     private let faceRequest = VNDetectFaceRectanglesRequest()
@@ -433,6 +564,13 @@ private final class CaptureDelegate: NSObject, AVCaptureVideoDataOutputSampleBuf
         // Publish preview frame if enabled
         if previewEnabled {
             publishPreviewFrame(pixelBuffer: pixelBuffer)
+        }
+
+        // Testing mode: compute signals, publish, skip normal detection
+        if testingEnabled {
+            let signals = computeTestingSignals(pixelBuffer: pixelBuffer)
+            onTestingSignals?(signals)
+            return
         }
 
         // Calibration mode
@@ -606,11 +744,98 @@ private final class CaptureDelegate: NSObject, AVCaptureVideoDataOutputSampleBuf
         calibratedBaseline ?? adaptiveBaseline
     }
 
+    // MARK: - Testing Mode
+
+    private func computeTestingSignals(pixelBuffer: CVPixelBuffer) -> DetectionSignals {
+        let face = faceRequest.results?.first
+        let faceBox = face?.boundingBox
+
+        let hands = handRequest.results ?? []
+        let handJointKeys: [VNHumanHandPoseObservation.JointName] = [
+            .wrist, .indexTip, .middleTip, .ringTip, .littleTip, .thumbTip,
+            .indexMCP, .middleMCP, .ringMCP, .littleMCP,
+        ]
+        let handPoints: [CGPoint] = hands.flatMap { hand in
+            handJointKeys.compactMap { key in
+                guard let point = try? hand.recognizedPoint(key),
+                      point.confidence >= 0.25 else { return nil }
+                return point.location
+            }
+        }
+
+        let drinkObjects: [(center: CGPoint, confidence: Float, label: String)] = {
+            guard let results = objectRequest?.results as? [VNRecognizedObjectObservation] else { return [] }
+            return results.compactMap { obs in
+                guard let topLabel = obs.labels.first,
+                      drinkObjectClasses.contains(topLabel.identifier),
+                      topLabel.confidence >= 0.3 else { return nil }
+                let box = obs.boundingBox
+                return (CGPoint(x: box.midX, y: box.midY), topLabel.confidence, topLabel.identifier)
+            }
+        }()
+
+        guard let faceBox else {
+            return DetectionSignals(
+                faceDetected: false, faceArea: 0, baseline: Float(currentBaseline),
+                handNearFace: false, colorMatchRatio: 0, colorMatchThreshold: 0.05,
+                objectNearFace: false, objectLabel: nil, objectConfidence: 0,
+                isDrinking: false, triggerReason: nil, colorMatchMask: nil
+            )
+        }
+
+        let faceArea = Float(faceBox.width * faceBox.height)
+        let faceCenter = CGPoint(x: faceBox.midX, y: faceBox.midY)
+        let handNearFace = isAnyHandPointNearFace(handPoints: handPoints, faceBox: faceBox)
+        let colorRatio = Float(bottleColorMatchRatio(pixelBuffer: pixelBuffer, faceBox: faceBox))
+        let mask = generateColorMatchMask(pixelBuffer: pixelBuffer, faceBox: faceBox)
+
+        // Find best drink object near face
+        var objectNearFace = false
+        var objectLabel: String?
+        var objectConfidence: Float = 0
+        for obj in drinkObjects {
+            if obj.center.y > 0.35
+                && isObjectNearFace(objectCenter: obj.center, faceCenter: faceCenter, faceBox: faceBox) {
+                objectNearFace = true
+                objectLabel = obj.label
+                objectConfidence = obj.confidence
+                break
+            }
+        }
+
+        // Determine if drinking (same logic as fuseSignals, read-only)
+        var isDrinking = false
+        var triggerReason: String?
+
+        if objectNearFace {
+            isDrinking = true
+            triggerReason = "Object near face (\(objectLabel ?? "?"))"
+        } else if handNearFace {
+            if bottleHue != nil && colorRatio > 0.05 {
+                isDrinking = true
+                triggerReason = "Hand + color match (\(Int(colorRatio * 100))%)"
+            } else if bottleHue == nil, currentBaseline > 0 {
+                let dropRatio = 1.0 - (CGFloat(faceArea) / currentBaseline)
+                if dropRatio > 0.30 {
+                    isDrinking = true
+                    triggerReason = "Hand + face occlusion (\(Int(dropRatio * 100))%)"
+                }
+            }
+        }
+
+        return DetectionSignals(
+            faceDetected: true, faceArea: faceArea, baseline: Float(currentBaseline),
+            handNearFace: handNearFace, colorMatchRatio: colorRatio, colorMatchThreshold: 0.05,
+            objectNearFace: objectNearFace, objectLabel: objectLabel, objectConfidence: objectConfidence,
+            isDrinking: isDrinking, triggerReason: triggerReason, colorMatchMask: mask
+        )
+    }
+
     // MARK: - Color Analysis
 
-    /// Check if the calibrated bottle color is present in the face region of the frame.
-    private func isBottleColorPresent(pixelBuffer: CVPixelBuffer, faceBox: CGRect) -> Bool {
-        guard let bottleHue, let bottleSaturation else { return false }
+    /// Returns the ratio (0.0–1.0) of pixels matching the calibrated bottle color in the face region.
+    private func bottleColorMatchRatio(pixelBuffer: CVPixelBuffer, faceBox: CGRect) -> CGFloat {
+        guard let bottleHue, let bottleSaturation else { return 0 }
 
         CVPixelBufferLockBaseAddress(pixelBuffer, .readOnly)
         defer { CVPixelBufferUnlockBaseAddress(pixelBuffer, .readOnly) }
@@ -618,7 +843,7 @@ private final class CaptureDelegate: NSObject, AVCaptureVideoDataOutputSampleBuf
         let width = CVPixelBufferGetWidth(pixelBuffer)
         let height = CVPixelBufferGetHeight(pixelBuffer)
         let bytesPerRow = CVPixelBufferGetBytesPerRow(pixelBuffer)
-        guard let baseAddress = CVPixelBufferGetBaseAddress(pixelBuffer) else { return false }
+        guard let baseAddress = CVPixelBufferGetBaseAddress(pixelBuffer) else { return 0 }
 
         let buffer = baseAddress.assumingMemoryBound(to: UInt8.self)
 
@@ -655,9 +880,85 @@ private final class CaptureDelegate: NSObject, AVCaptureVideoDataOutputSampleBuf
             }
         }
 
-        guard sampleCount > 0 else { return false }
-        let matchRatio = CGFloat(matchCount) / CGFloat(sampleCount)
-        return matchRatio > 0.05 // At least 5% of face region has bottle color
+        guard sampleCount > 0 else { return 0 }
+        return CGFloat(matchCount) / CGFloat(sampleCount)
+    }
+
+    /// Check if the calibrated bottle color is present in the face region of the frame.
+    private func isBottleColorPresent(pixelBuffer: CVPixelBuffer, faceBox: CGRect) -> Bool {
+        return bottleColorMatchRatio(pixelBuffer: pixelBuffer, faceBox: faceBox) > 0.05
+    }
+
+    /// Generate a semi-transparent red mask image highlighting pixels that match the bottle color.
+    private func generateColorMatchMask(pixelBuffer: CVPixelBuffer, faceBox: CGRect) -> CGImage? {
+        guard let bottleHue, let bottleSaturation else { return nil }
+
+        CVPixelBufferLockBaseAddress(pixelBuffer, .readOnly)
+        defer { CVPixelBufferUnlockBaseAddress(pixelBuffer, .readOnly) }
+
+        let width = CVPixelBufferGetWidth(pixelBuffer)
+        let height = CVPixelBufferGetHeight(pixelBuffer)
+        let bytesPerRow = CVPixelBufferGetBytesPerRow(pixelBuffer)
+        guard let baseAddress = CVPixelBufferGetBaseAddress(pixelBuffer) else { return nil }
+
+        let srcBuffer = baseAddress.assumingMemoryBound(to: UInt8.self)
+
+        // Expanded face region
+        let expandedBox = faceBox.insetBy(dx: -faceBox.width * 0.5, dy: -faceBox.height * 0.5)
+        let roiMinX = max(0, Int(expandedBox.minX * CGFloat(width)))
+        let roiMaxX = min(width - 1, Int(expandedBox.maxX * CGFloat(width)))
+        let roiMinY = max(0, Int((1.0 - expandedBox.maxY) * CGFloat(height)))
+        let roiMaxY = min(height - 1, Int((1.0 - expandedBox.minY) * CGFloat(height)))
+
+        // Create RGBA mask buffer (full frame size, all transparent)
+        let maskBytesPerRow = width * 4
+        let maskData = UnsafeMutablePointer<UInt8>.allocate(capacity: height * maskBytesPerRow)
+        maskData.initialize(repeating: 0, count: height * maskBytesPerRow)
+        defer { maskData.deallocate() }
+
+        // Paint matching pixels red (step=2 for decent resolution without being too slow)
+        let step = 2
+        for y in stride(from: roiMinY, to: roiMaxY, by: step) {
+            for x in stride(from: roiMinX, to: roiMaxX, by: step) {
+                let srcOffset = y * bytesPerRow + x * 4 // BGRA
+                let b = CGFloat(srcBuffer[srcOffset]) / 255.0
+                let g = CGFloat(srcBuffer[srcOffset + 1]) / 255.0
+                let r = CGFloat(srcBuffer[srcOffset + 2]) / 255.0
+
+                let (h, s, v) = rgbToHSV(r: r, g: g, b: b)
+                guard s > 0.15 && v > 0.15 else { continue }
+
+                let hueDiff = min(abs(h - bottleHue), 360.0 - abs(h - bottleHue))
+                guard hueDiff < bottleHueTolerance && abs(s - bottleSaturation) < bottleSatTolerance else { continue }
+
+                // Fill a step×step block with semi-transparent red
+                for dy in 0..<step {
+                    for dx in 0..<step {
+                        let py = y + dy
+                        let px = x + dx
+                        guard py < height, px < width else { continue }
+                        let maskOffset = py * maskBytesPerRow + px * 4
+                        maskData[maskOffset]     = 255  // R
+                        maskData[maskOffset + 1] = 0    // G
+                        maskData[maskOffset + 2] = 0    // B
+                        maskData[maskOffset + 3] = 120  // A (~47% opacity)
+                    }
+                }
+            }
+        }
+
+        guard let colorSpace = CGColorSpace(name: CGColorSpace.sRGB),
+              let context = CGContext(
+                  data: maskData,
+                  width: width,
+                  height: height,
+                  bitsPerComponent: 8,
+                  bytesPerRow: maskBytesPerRow,
+                  space: colorSpace,
+                  bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+              ) else { return nil }
+
+        return context.makeImage()
     }
 
     /// Extract the dominant non-skin color from the face region (for calibration).

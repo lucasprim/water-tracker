@@ -34,7 +34,14 @@ final class CalibrationViewModel {
     var baselineIsStored = false
     var drinkingIsStored = false
 
+    /// Live testing mode
+    var isTesting = false
+
     var canSave: Bool {
+        baselineImage != nil && drinkingImage != nil && selectedHue != nil
+    }
+
+    var canTest: Bool {
         baselineImage != nil && drinkingImage != nil && selectedHue != nil
     }
 
@@ -42,6 +49,11 @@ final class CalibrationViewModel {
 
     init(webcamMonitor: WebcamMonitor) {
         self.webcamMonitor = webcamMonitor
+        // Ensure camera is running — it may have been stopped (goal reached)
+        // or errored (previous crash/disconnect)
+        if webcamMonitor.status != .running && webcamMonitor.status != .denied {
+            webcamMonitor.retry()
+        }
         webcamMonitor.enablePreview()
     }
 
@@ -68,7 +80,53 @@ final class CalibrationViewModel {
 
     func tearDown() {
         countdownTask?.cancel()
+        stopTesting()
         webcamMonitor.disablePreview()
+    }
+
+    func startTesting() {
+        guard canTest else { return }
+
+        // Compute baseline face area from the captured overlay
+        let baselineFaceArea: Float
+        if let faceBox = baselineOverlay?.faceBox {
+            baselineFaceArea = Float(faceBox.width * faceBox.height)
+        } else {
+            baselineFaceArea = 0.05
+        }
+
+        webcamMonitor.updateTestingCalibration(
+            baselineArea: baselineFaceArea,
+            bottleHue: selectedHue,
+            bottleSaturation: selectedSaturation,
+            hueTolerance: hueTolerance,
+            satTolerance: satTolerance
+        )
+        webcamMonitor.enableTesting()
+        isTesting = true
+    }
+
+    func stopTesting() {
+        guard isTesting else { return }
+        webcamMonitor.disableTesting()
+        isTesting = false
+    }
+
+    func pushTestingCalibration() {
+        guard isTesting else { return }
+        let baselineFaceArea: Float
+        if let faceBox = baselineOverlay?.faceBox {
+            baselineFaceArea = Float(faceBox.width * faceBox.height)
+        } else {
+            baselineFaceArea = 0.05
+        }
+        webcamMonitor.updateTestingCalibration(
+            baselineArea: baselineFaceArea,
+            bottleHue: selectedHue,
+            bottleSaturation: selectedSaturation,
+            hueTolerance: hueTolerance,
+            satTolerance: satTolerance
+        )
     }
 
     func startCountdown(for target: CaptureTarget) {
@@ -130,6 +188,7 @@ final class CalibrationViewModel {
 
     func save(modelContext: ModelContext) {
         guard canSave else { return }
+        stopTesting()
 
         // Compute calibration values from overlays when available,
         // fall back to stored values if images came from disk.
@@ -220,11 +279,16 @@ struct CalibrationWindow: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            HStack(alignment: .top, spacing: 16) {
-                baselinePanel
-                drinkingPanel
+            if viewModel.isTesting {
+                testingPanel
+                    .padding(20)
+            } else {
+                HStack(alignment: .top, spacing: 16) {
+                    baselinePanel
+                    drinkingPanel
+                }
+                .padding(20)
             }
-            .padding(20)
 
             Divider()
 
@@ -414,6 +478,188 @@ struct CalibrationWindow: View {
         }
     }
 
+    // MARK: - Testing Panel
+
+    private var testingPanel: some View {
+        HStack(alignment: .top, spacing: 16) {
+            // Left: Live camera feed with overlays
+            VStack(spacing: 8) {
+                Text("Live Detection Test")
+                    .font(.headline)
+
+                let signals = viewModel.webcamMonitor.latestDetectionSignals
+                ZStack {
+                    CameraFrameView(
+                        image: viewModel.webcamMonitor.latestFrame,
+                        overlay: viewModel.webcamMonitor.latestOverlay,
+                        showOverlays: true
+                    )
+
+                    if let mask = viewModel.webcamMonitor.latestColorMatchMask {
+                        GeometryReader { geo in
+                            let nsImage = NSImage(cgImage: mask, size: NSSize(width: mask.width, height: mask.height))
+                            Image(nsImage: nsImage)
+                                .resizable()
+                                .scaledToFit()
+                                .frame(width: geo.size.width, height: geo.size.height)
+                                .allowsHitTesting(false)
+                        }
+                    }
+                }
+                .frame(minHeight: 300)
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8)
+                        .stroke(signals?.isDrinking == true ? Color.green : Color.secondary.opacity(0.3), lineWidth: signals?.isDrinking == true ? 3 : 2)
+                )
+            }
+            .frame(maxWidth: .infinity)
+
+            // Right: Signal indicators + tolerance sliders
+            VStack(alignment: .leading, spacing: 12) {
+                Text("Signals")
+                    .font(.headline)
+
+                signalIndicators
+
+                Divider()
+
+                testingColorControls
+            }
+            .frame(width: 220)
+        }
+    }
+
+    private var signalIndicators: some View {
+        let signals = viewModel.webcamMonitor.latestDetectionSignals
+
+        return VStack(alignment: .leading, spacing: 8) {
+            signalRow(
+                label: "Face",
+                active: signals?.faceDetected == true,
+                detail: signals.map { String(format: "%.1f%%", $0.faceArea * 100) }
+            )
+            signalRow(
+                label: "Fingers",
+                active: signals?.handNearFace == true,
+                detail: nil
+            )
+            signalRow(
+                label: "Color",
+                active: signals.map { $0.colorMatchRatio > $0.colorMatchThreshold } ?? false,
+                detail: signals.map { String(format: "%.0f%%", $0.colorMatchRatio * 100) }
+            )
+            signalRow(
+                label: "Object",
+                active: signals?.objectNearFace == true,
+                detail: signals?.objectLabel
+            )
+
+            Divider()
+
+            if signals?.isDrinking == true {
+                HStack {
+                    Image(systemName: "drop.fill")
+                        .foregroundStyle(.blue)
+                    Text("DRINKING")
+                        .font(.system(.caption, design: .monospaced, weight: .bold))
+                        .foregroundStyle(.blue)
+                }
+                .padding(.vertical, 4)
+                .padding(.horizontal, 8)
+                .background(.blue.opacity(0.1), in: RoundedRectangle(cornerRadius: 6))
+
+                if let reason = signals?.triggerReason {
+                    Text(reason)
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+            } else {
+                HStack {
+                    Image(systemName: "drop")
+                        .foregroundStyle(.secondary)
+                    Text("Not drinking")
+                        .font(.system(.caption, design: .monospaced))
+                        .foregroundStyle(.secondary)
+                }
+            }
+        }
+    }
+
+    private func signalRow(label: String, active: Bool, detail: String?) -> some View {
+        HStack(spacing: 8) {
+            Circle()
+                .fill(active ? Color.green : Color.secondary.opacity(0.3))
+                .frame(width: 8, height: 8)
+            Text(label)
+                .font(.system(.caption, design: .monospaced))
+                .frame(width: 50, alignment: .leading)
+            if let detail {
+                Text(detail)
+                    .font(.system(.caption2, design: .monospaced))
+                    .foregroundStyle(.secondary)
+            }
+            Spacer()
+            Image(systemName: active ? "checkmark" : "xmark")
+                .font(.caption2)
+                .foregroundStyle(active ? .green : .secondary)
+        }
+    }
+
+    private var testingColorControls: some View {
+        VStack(spacing: 6) {
+            HStack(spacing: 8) {
+                Text("Bottle Color")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
+                RoundedRectangle(cornerRadius: 4)
+                    .fill(viewModel.selectedColor)
+                    .frame(width: 24, height: 16)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 4)
+                            .stroke(.secondary.opacity(0.5), lineWidth: 1)
+                    )
+
+                Spacer()
+            }
+
+            HStack(spacing: 8) {
+                Text("Hue ±")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .frame(width: 40, alignment: .leading)
+                Slider(value: Binding(
+                    get: { viewModel.hueTolerance },
+                    set: {
+                        viewModel.hueTolerance = $0
+                        viewModel.pushTestingCalibration()
+                    }
+                ), in: 5...40, step: 1)
+                Text(String(format: "%.0f°", viewModel.hueTolerance))
+                    .font(.system(.caption2, design: .monospaced))
+                    .frame(width: 30, alignment: .trailing)
+            }
+
+            HStack(spacing: 8) {
+                Text("Sat ±")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .frame(width: 40, alignment: .leading)
+                Slider(value: Binding(
+                    get: { viewModel.satTolerance },
+                    set: {
+                        viewModel.satTolerance = $0
+                        viewModel.pushTestingCalibration()
+                    }
+                ), in: 0.05...0.40, step: 0.01)
+                Text(String(format: "%.0f%%", viewModel.satTolerance * 100))
+                    .font(.system(.caption2, design: .monospaced))
+                    .frame(width: 30, alignment: .trailing)
+            }
+        }
+    }
+
     // MARK: - Countdown Overlay
 
     @ViewBuilder
@@ -439,15 +685,27 @@ struct CalibrationWindow: View {
                 dismiss()
             }
 
+            if viewModel.isTesting {
+                Button("Back") {
+                    viewModel.stopTesting()
+                }
+            }
+
             Spacer()
 
-            if viewModel.canSave {
+            if !viewModel.isTesting && viewModel.canSave {
                 Label("Ready to save", systemImage: "checkmark.circle")
                     .font(.caption)
                     .foregroundStyle(.green)
             }
 
             Spacer()
+
+            if viewModel.canTest && !viewModel.isTesting {
+                Button("Test Calibration") {
+                    viewModel.startTesting()
+                }
+            }
 
             Button("Save Calibration") {
                 viewModel.save(modelContext: modelContext)
