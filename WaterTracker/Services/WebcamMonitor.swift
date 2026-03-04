@@ -153,6 +153,10 @@ final class WebcamMonitor {
         }
     }
 
+    func setDetectionAlgorithm(_ id: DetectionAlgorithmID) {
+        captureDelegate.algorithm = makeDetectionAlgorithm(for: id)
+    }
+
     func startCalibration() {
         calibrationPhase = .baseline
         captureDelegate.startCalibrationPhase(.baseline)
@@ -482,6 +486,9 @@ private final class CaptureDelegate: NSObject, AVCaptureVideoDataOutputSampleBuf
     /// Whether testing mode is active
     var testingEnabled = false
 
+    /// Pluggable detection algorithm
+    var algorithm: any DetectionAlgorithm = ColorFingersAlgorithm()
+
     // Vision requests
     private let faceRequest = VNDetectFaceRectanglesRequest()
     private let handRequest: VNDetectHumanHandPoseRequest = {
@@ -566,22 +573,104 @@ private final class CaptureDelegate: NSObject, AVCaptureVideoDataOutputSampleBuf
             publishPreviewFrame(pixelBuffer: pixelBuffer)
         }
 
-        // Testing mode: compute signals, publish, skip normal detection
-        if testingEnabled {
-            let signals = computeTestingSignals(pixelBuffer: pixelBuffer)
-            onTestingSignals?(signals)
-            return
-        }
-
-        // Calibration mode
+        // Calibration mode — doesn't use algorithm
         if currentCalibrationPhase != .idle {
             handleCalibrationFrame(pixelBuffer: pixelBuffer)
             return
         }
 
-        let (isDrinking, logEntry) = fuseSignals(pixelBuffer: pixelBuffer)
-        onFrameAnalyzed?(isDrinking, logEntry)
+        // Build shared input (if face present)
+        let calibration = calibrationData
+        guard let input = buildDetectionInput(pixelBuffer: pixelBuffer, minObjectConfidence: testingEnabled ? 0.3 : 0.4) else {
+            if testingEnabled {
+                let signals = DetectionSignals(
+                    faceDetected: false, faceArea: 0, baseline: Float(currentBaseline),
+                    handNearFace: false, colorMatchRatio: 0, colorMatchThreshold: 0.05,
+                    objectNearFace: false, objectLabel: nil, objectConfidence: 0,
+                    isDrinking: false, triggerReason: nil, colorMatchMask: nil
+                )
+                onTestingSignals?(signals)
+            } else {
+                onFrameAnalyzed?(false, "no face")
+            }
+            return
+        }
+
+        // Update adaptive baseline when no hand near face
+        let handNearFace = input.handPoints.contains {
+            let expandedBox = input.faceBox.insetBy(dx: -input.faceBox.width * 0.4, dy: -input.faceBox.height * 0.4)
+            return expandedBox.contains($0)
+        }
+        if !handNearFace {
+            updateBaseline(area: input.faceArea)
+        }
+
+        if testingEnabled {
+            let signals = algorithm.computeTestingSignals(input: input, calibration: calibration)
+            onTestingSignals?(signals)
+        } else {
+            let result = algorithm.analyze(input: input, calibration: calibration)
+
+            if frameCount % 10 == 0, !result.isDrinking {
+                logger.notice("\(result.logEntry, privacy: .public) (frame \(self.frameCount))")
+            }
+
+            onFrameAnalyzed?(result.isDrinking, result.logEntry)
+        }
     }
+
+    // MARK: - Input Building
+
+    private func buildDetectionInput(pixelBuffer: CVPixelBuffer, minObjectConfidence: Float) -> DetectionInput? {
+        guard let face = faceRequest.results?.first else { return nil }
+        let faceBox = face.boundingBox
+
+        let hands = handRequest.results ?? []
+        let handJointKeys: [VNHumanHandPoseObservation.JointName] = [
+            .wrist, .indexTip, .middleTip, .ringTip, .littleTip, .thumbTip,
+            .indexMCP, .middleMCP, .ringMCP, .littleMCP,
+        ]
+        let handPoints: [CGPoint] = hands.flatMap { hand in
+            handJointKeys.compactMap { key in
+                guard let point = try? hand.recognizedPoint(key),
+                      point.confidence >= 0.25 else { return nil }
+                return point.location
+            }
+        }
+
+        let drinkObjects: [(center: CGPoint, confidence: Float, label: String)] = {
+            guard let results = objectRequest?.results as? [VNRecognizedObjectObservation] else { return [] }
+            return results.compactMap { obs in
+                guard let topLabel = obs.labels.first,
+                      drinkObjectClasses.contains(topLabel.identifier),
+                      topLabel.confidence >= minObjectConfidence else { return nil }
+                let box = obs.boundingBox
+                return (CGPoint(x: box.midX, y: box.midY), topLabel.confidence, topLabel.identifier)
+            }
+        }()
+
+        return DetectionInput(
+            pixelBuffer: pixelBuffer,
+            faceBox: faceBox,
+            faceArea: faceBox.width * faceBox.height,
+            faceCenter: CGPoint(x: faceBox.midX, y: faceBox.midY),
+            handPoints: handPoints,
+            drinkObjects: drinkObjects
+        )
+    }
+
+    private var calibrationData: CalibrationData {
+        CalibrationData(
+            baseline: currentBaseline,
+            dropThreshold: calibratedDropThreshold ?? 0.15,
+            bottleHue: bottleHue,
+            bottleSaturation: bottleSaturation,
+            bottleHueTolerance: bottleHueTolerance,
+            bottleSatTolerance: bottleSatTolerance
+        )
+    }
+
+    // MARK: - Preview
 
     private func publishPreviewFrame(pixelBuffer: CVPixelBuffer) {
         let ciImage = CIImage(cvPixelBuffer: pixelBuffer)
@@ -640,7 +729,6 @@ private final class CaptureDelegate: NSObject, AVCaptureVideoDataOutputSampleBuf
         let area = face.boundingBox.width * face.boundingBox.height
         calibrationSamples.append(area)
 
-        // During drinking phase, sample the dominant non-skin color in the face region
         if currentCalibrationPhase == .drinking {
             if let color = extractDominantNonSkinColor(pixelBuffer: pixelBuffer, faceBox: face.boundingBox) {
                 calibrationColorSamples.append(color)
@@ -648,386 +736,12 @@ private final class CaptureDelegate: NSObject, AVCaptureVideoDataOutputSampleBuf
         }
     }
 
-    // MARK: - Multi-Signal Fusion
-
-    private func fuseSignals(pixelBuffer: CVPixelBuffer) -> (Bool, String) {
-        let face = faceRequest.results?.first
-        let faceBox = face?.boundingBox
-
-        // Extract hand joint positions (wrist + fingertips for better coverage)
-        let hands = handRequest.results ?? []
-        let handJointKeys: [VNHumanHandPoseObservation.JointName] = [
-            .wrist, .indexTip, .middleTip, .ringTip, .littleTip, .thumbTip,
-            .indexMCP, .middleMCP, .ringMCP, .littleMCP,
-        ]
-        let handPoints: [CGPoint] = hands.flatMap { hand in
-            handJointKeys.compactMap { key in
-                guard let point = try? hand.recognizedPoint(key),
-                      point.confidence >= 0.25 else { return nil }
-                return point.location
-            }
-        }
-
-        // Extract drink-related object detections (bottle/cup with conf >= 0.4)
-        let drinkObjects: [(center: CGPoint, confidence: Float, label: String)] = {
-            guard let results = objectRequest?.results as? [VNRecognizedObjectObservation] else { return [] }
-            return results.compactMap { obs in
-                guard let topLabel = obs.labels.first,
-                      drinkObjectClasses.contains(topLabel.identifier),
-                      topLabel.confidence >= 0.4 else { return nil }
-                let box = obs.boundingBox
-                return (CGPoint(x: box.midX, y: box.midY), topLabel.confidence, topLabel.identifier)
-            }
-        }()
-
-        guard let faceBox else {
-            return (false, "no face")
-        }
-
-        let faceArea = faceBox.width * faceBox.height
-        let faceCenter = CGPoint(x: faceBox.midX, y: faceBox.midY)
-        let handNearFace = isAnyHandPointNearFace(handPoints: handPoints, faceBox: faceBox)
-
-        // Update adaptive baseline only when no hand near face (avoids poisoning during drinking)
-        if !handNearFace {
-            updateBaseline(area: faceArea)
-        }
-
-        let baseline = currentBaseline
-        let hasBottleColor = bottleHue != nil
-        let colorTag = hasBottleColor ? "C" : "-"
-        let log = String(format: "F=(%.2f,%.2f,%.2f,%.2f) H=%d O=%d %@ base=%.3f",
-                         faceBox.minX, faceBox.minY, faceBox.width, faceBox.height,
-                         handPoints.count, drinkObjects.count, colorTag, baseline)
-
-        // Strong trigger: drink object detected near face and above midframe
-        for obj in drinkObjects {
-            if obj.center.y > 0.35
-                && isObjectNearFace(objectCenter: obj.center, faceCenter: faceCenter, faceBox: faceBox) {
-                let triggerLog = String(format: "DRINK(bottle@face) obj=(%.2f,%.2f) conf=%.2f",
-                                        obj.center.x, obj.center.y, obj.confidence)
-                return (true, triggerLog)
-            }
-        }
-
-        // Moderate trigger: hand near face + confirmation signal
-        if handNearFace {
-            if hasBottleColor {
-                // Calibrated: bottle color must be present (no fallback — color IS the gate)
-                let colorPresent = isBottleColorPresent(pixelBuffer: pixelBuffer, faceBox: faceBox)
-                if colorPresent {
-                    let handPos = handPoints.first ?? .zero
-                    let triggerLog = String(format: "DRINK(hand+color) H@(%.2f,%.2f)",
-                                            handPos.x, handPos.y)
-                    return (true, triggerLog)
-                }
-            } else if baseline > 0 {
-                // Uncalibrated fallback: require significant face area drop
-                let dropRatio = 1.0 - (faceArea / baseline)
-                if dropRatio > 0.30 {
-                    let handPos = handPoints.first ?? .zero
-                    let triggerLog = String(format: "DRINK(hand+occ) area=%.3f drop=%.0f%% H@(%.2f,%.2f)",
-                                            faceArea, dropRatio * 100, handPos.x, handPos.y)
-                    return (true, triggerLog)
-                }
-            }
-        }
-
-        if frameCount % 10 == 0 {
-            logger.notice("\(log, privacy: .public) (frame \(self.frameCount))")
-        }
-
-        return (false, log)
-    }
+    // MARK: - Helpers
 
     private var currentBaseline: CGFloat {
         calibratedBaseline ?? adaptiveBaseline
     }
 
-    // MARK: - Testing Mode
-
-    private func computeTestingSignals(pixelBuffer: CVPixelBuffer) -> DetectionSignals {
-        let face = faceRequest.results?.first
-        let faceBox = face?.boundingBox
-
-        let hands = handRequest.results ?? []
-        let handJointKeys: [VNHumanHandPoseObservation.JointName] = [
-            .wrist, .indexTip, .middleTip, .ringTip, .littleTip, .thumbTip,
-            .indexMCP, .middleMCP, .ringMCP, .littleMCP,
-        ]
-        let handPoints: [CGPoint] = hands.flatMap { hand in
-            handJointKeys.compactMap { key in
-                guard let point = try? hand.recognizedPoint(key),
-                      point.confidence >= 0.25 else { return nil }
-                return point.location
-            }
-        }
-
-        let drinkObjects: [(center: CGPoint, confidence: Float, label: String)] = {
-            guard let results = objectRequest?.results as? [VNRecognizedObjectObservation] else { return [] }
-            return results.compactMap { obs in
-                guard let topLabel = obs.labels.first,
-                      drinkObjectClasses.contains(topLabel.identifier),
-                      topLabel.confidence >= 0.3 else { return nil }
-                let box = obs.boundingBox
-                return (CGPoint(x: box.midX, y: box.midY), topLabel.confidence, topLabel.identifier)
-            }
-        }()
-
-        guard let faceBox else {
-            return DetectionSignals(
-                faceDetected: false, faceArea: 0, baseline: Float(currentBaseline),
-                handNearFace: false, colorMatchRatio: 0, colorMatchThreshold: 0.05,
-                objectNearFace: false, objectLabel: nil, objectConfidence: 0,
-                isDrinking: false, triggerReason: nil, colorMatchMask: nil
-            )
-        }
-
-        let faceArea = Float(faceBox.width * faceBox.height)
-        let faceCenter = CGPoint(x: faceBox.midX, y: faceBox.midY)
-        let handNearFace = isAnyHandPointNearFace(handPoints: handPoints, faceBox: faceBox)
-        let colorRatio = Float(bottleColorMatchRatio(pixelBuffer: pixelBuffer, faceBox: faceBox))
-        let mask = generateColorMatchMask(pixelBuffer: pixelBuffer, faceBox: faceBox)
-
-        // Find best drink object near face
-        var objectNearFace = false
-        var objectLabel: String?
-        var objectConfidence: Float = 0
-        for obj in drinkObjects {
-            if obj.center.y > 0.35
-                && isObjectNearFace(objectCenter: obj.center, faceCenter: faceCenter, faceBox: faceBox) {
-                objectNearFace = true
-                objectLabel = obj.label
-                objectConfidence = obj.confidence
-                break
-            }
-        }
-
-        // Determine if drinking (same logic as fuseSignals, read-only)
-        var isDrinking = false
-        var triggerReason: String?
-
-        if objectNearFace {
-            isDrinking = true
-            triggerReason = "Object near face (\(objectLabel ?? "?"))"
-        } else if handNearFace {
-            if bottleHue != nil && colorRatio > 0.05 {
-                isDrinking = true
-                triggerReason = "Hand + color match (\(Int(colorRatio * 100))%)"
-            } else if bottleHue == nil, currentBaseline > 0 {
-                let dropRatio = 1.0 - (CGFloat(faceArea) / currentBaseline)
-                if dropRatio > 0.30 {
-                    isDrinking = true
-                    triggerReason = "Hand + face occlusion (\(Int(dropRatio * 100))%)"
-                }
-            }
-        }
-
-        return DetectionSignals(
-            faceDetected: true, faceArea: faceArea, baseline: Float(currentBaseline),
-            handNearFace: handNearFace, colorMatchRatio: colorRatio, colorMatchThreshold: 0.05,
-            objectNearFace: objectNearFace, objectLabel: objectLabel, objectConfidence: objectConfidence,
-            isDrinking: isDrinking, triggerReason: triggerReason, colorMatchMask: mask
-        )
-    }
-
-    // MARK: - Color Analysis
-
-    /// Returns the ratio (0.0–1.0) of pixels matching the calibrated bottle color in the face region.
-    private func bottleColorMatchRatio(pixelBuffer: CVPixelBuffer, faceBox: CGRect) -> CGFloat {
-        guard let bottleHue, let bottleSaturation else { return 0 }
-
-        CVPixelBufferLockBaseAddress(pixelBuffer, .readOnly)
-        defer { CVPixelBufferUnlockBaseAddress(pixelBuffer, .readOnly) }
-
-        let width = CVPixelBufferGetWidth(pixelBuffer)
-        let height = CVPixelBufferGetHeight(pixelBuffer)
-        let bytesPerRow = CVPixelBufferGetBytesPerRow(pixelBuffer)
-        guard let baseAddress = CVPixelBufferGetBaseAddress(pixelBuffer) else { return 0 }
-
-        let buffer = baseAddress.assumingMemoryBound(to: UInt8.self)
-
-        // Expanded face region (where bottle would appear)
-        let expandedBox = faceBox.insetBy(dx: -faceBox.width * 0.5, dy: -faceBox.height * 0.5)
-
-        // Vision coords (bottom-left origin) → pixel coords (top-left origin)
-        let minX = max(0, Int(expandedBox.minX * CGFloat(width)))
-        let maxX = min(width - 1, Int(expandedBox.maxX * CGFloat(width)))
-        let minY = max(0, Int((1.0 - expandedBox.maxY) * CGFloat(height)))
-        let maxY = min(height - 1, Int((1.0 - expandedBox.minY) * CGFloat(height)))
-
-        var matchCount = 0
-        var sampleCount = 0
-        let step = 4 // subsample for speed
-
-        for y in stride(from: minY, to: maxY, by: step) {
-            for x in stride(from: minX, to: maxX, by: step) {
-                let offset = y * bytesPerRow + x * 4 // BGRA
-                let b = CGFloat(buffer[offset]) / 255.0
-                let g = CGFloat(buffer[offset + 1]) / 255.0
-                let r = CGFloat(buffer[offset + 2]) / 255.0
-
-                let (h, s, v) = rgbToHSV(r: r, g: g, b: b)
-                sampleCount += 1
-
-                // Skip very dark or unsaturated pixels
-                guard s > 0.15 && v > 0.15 else { continue }
-
-                let hueDiff = min(abs(h - bottleHue), 360.0 - abs(h - bottleHue))
-                if hueDiff < bottleHueTolerance && abs(s - bottleSaturation) < bottleSatTolerance {
-                    matchCount += 1
-                }
-            }
-        }
-
-        guard sampleCount > 0 else { return 0 }
-        return CGFloat(matchCount) / CGFloat(sampleCount)
-    }
-
-    /// Check if the calibrated bottle color is present in the face region of the frame.
-    private func isBottleColorPresent(pixelBuffer: CVPixelBuffer, faceBox: CGRect) -> Bool {
-        return bottleColorMatchRatio(pixelBuffer: pixelBuffer, faceBox: faceBox) > 0.05
-    }
-
-    /// Generate a semi-transparent red mask image highlighting pixels that match the bottle color.
-    private func generateColorMatchMask(pixelBuffer: CVPixelBuffer, faceBox: CGRect) -> CGImage? {
-        guard let bottleHue, let bottleSaturation else { return nil }
-
-        CVPixelBufferLockBaseAddress(pixelBuffer, .readOnly)
-        defer { CVPixelBufferUnlockBaseAddress(pixelBuffer, .readOnly) }
-
-        let width = CVPixelBufferGetWidth(pixelBuffer)
-        let height = CVPixelBufferGetHeight(pixelBuffer)
-        let bytesPerRow = CVPixelBufferGetBytesPerRow(pixelBuffer)
-        guard let baseAddress = CVPixelBufferGetBaseAddress(pixelBuffer) else { return nil }
-
-        let srcBuffer = baseAddress.assumingMemoryBound(to: UInt8.self)
-
-        // Expanded face region
-        let expandedBox = faceBox.insetBy(dx: -faceBox.width * 0.5, dy: -faceBox.height * 0.5)
-        let roiMinX = max(0, Int(expandedBox.minX * CGFloat(width)))
-        let roiMaxX = min(width - 1, Int(expandedBox.maxX * CGFloat(width)))
-        let roiMinY = max(0, Int((1.0 - expandedBox.maxY) * CGFloat(height)))
-        let roiMaxY = min(height - 1, Int((1.0 - expandedBox.minY) * CGFloat(height)))
-
-        // Create RGBA mask buffer (full frame size, all transparent)
-        let maskBytesPerRow = width * 4
-        let maskData = UnsafeMutablePointer<UInt8>.allocate(capacity: height * maskBytesPerRow)
-        maskData.initialize(repeating: 0, count: height * maskBytesPerRow)
-        defer { maskData.deallocate() }
-
-        // Paint matching pixels red (step=2 for decent resolution without being too slow)
-        let step = 2
-        for y in stride(from: roiMinY, to: roiMaxY, by: step) {
-            for x in stride(from: roiMinX, to: roiMaxX, by: step) {
-                let srcOffset = y * bytesPerRow + x * 4 // BGRA
-                let b = CGFloat(srcBuffer[srcOffset]) / 255.0
-                let g = CGFloat(srcBuffer[srcOffset + 1]) / 255.0
-                let r = CGFloat(srcBuffer[srcOffset + 2]) / 255.0
-
-                let (h, s, v) = rgbToHSV(r: r, g: g, b: b)
-                guard s > 0.15 && v > 0.15 else { continue }
-
-                let hueDiff = min(abs(h - bottleHue), 360.0 - abs(h - bottleHue))
-                guard hueDiff < bottleHueTolerance && abs(s - bottleSaturation) < bottleSatTolerance else { continue }
-
-                // Fill a step×step block with semi-transparent red
-                for dy in 0..<step {
-                    for dx in 0..<step {
-                        let py = y + dy
-                        let px = x + dx
-                        guard py < height, px < width else { continue }
-                        let maskOffset = py * maskBytesPerRow + px * 4
-                        maskData[maskOffset]     = 255  // R
-                        maskData[maskOffset + 1] = 0    // G
-                        maskData[maskOffset + 2] = 0    // B
-                        maskData[maskOffset + 3] = 120  // A (~47% opacity)
-                    }
-                }
-            }
-        }
-
-        guard let colorSpace = CGColorSpace(name: CGColorSpace.sRGB),
-              let context = CGContext(
-                  data: maskData,
-                  width: width,
-                  height: height,
-                  bitsPerComponent: 8,
-                  bytesPerRow: maskBytesPerRow,
-                  space: colorSpace,
-                  bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
-              ) else { return nil }
-
-        return context.makeImage()
-    }
-
-    /// Extract the dominant non-skin color from the face region (for calibration).
-    private func extractDominantNonSkinColor(
-        pixelBuffer: CVPixelBuffer,
-        faceBox: CGRect
-    ) -> (hue: CGFloat, saturation: CGFloat)? {
-        CVPixelBufferLockBaseAddress(pixelBuffer, .readOnly)
-        defer { CVPixelBufferUnlockBaseAddress(pixelBuffer, .readOnly) }
-
-        let width = CVPixelBufferGetWidth(pixelBuffer)
-        let height = CVPixelBufferGetHeight(pixelBuffer)
-        let bytesPerRow = CVPixelBufferGetBytesPerRow(pixelBuffer)
-        guard let baseAddress = CVPixelBufferGetBaseAddress(pixelBuffer) else { return nil }
-
-        let buffer = baseAddress.assumingMemoryBound(to: UInt8.self)
-
-        let expandedBox = faceBox.insetBy(dx: -faceBox.width * 0.5, dy: -faceBox.height * 0.5)
-        let minX = max(0, Int(expandedBox.minX * CGFloat(width)))
-        let maxX = min(width - 1, Int(expandedBox.maxX * CGFloat(width)))
-        let minY = max(0, Int((1.0 - expandedBox.maxY) * CGFloat(height)))
-        let maxY = min(height - 1, Int((1.0 - expandedBox.minY) * CGFloat(height)))
-
-        var nonSkinHues: [(hue: CGFloat, saturation: CGFloat)] = []
-        let step = 6
-
-        for y in stride(from: minY, to: maxY, by: step) {
-            for x in stride(from: minX, to: maxX, by: step) {
-                let offset = y * bytesPerRow + x * 4
-                let b = CGFloat(buffer[offset]) / 255.0
-                let g = CGFloat(buffer[offset + 1]) / 255.0
-                let r = CGFloat(buffer[offset + 2]) / 255.0
-
-                let (h, s, v) = rgbToHSV(r: r, g: g, b: b)
-
-                // Filter: must be saturated and not too dark, and NOT skin-toned
-                // Skin hues are roughly 0–50° (red/orange/yellow)
-                guard s > 0.20 && v > 0.20 else { continue }
-                guard h > 55 && h < 340 else { continue } // skip skin-range hues and reds
-
-                nonSkinHues.append((hue: h, saturation: s))
-            }
-        }
-
-        guard nonSkinHues.count >= 5 else { return nil }
-
-        // Return median hue and saturation
-        let sortedH = nonSkinHues.map(\.hue).sorted()
-        let sortedS = nonSkinHues.map(\.saturation).sorted()
-        return (hue: sortedH[sortedH.count / 2], saturation: sortedS[sortedS.count / 2])
-    }
-
-    // MARK: - Helpers
-
-    /// Check if object center is within 1.5x face dimensions from face center.
-    private func isObjectNearFace(objectCenter: CGPoint, faceCenter: CGPoint, faceBox: CGRect) -> Bool {
-        let maxDist = max(faceBox.width, faceBox.height) * 1.5
-        let dx = objectCenter.x - faceCenter.x
-        let dy = objectCenter.y - faceCenter.y
-        return sqrt(dx * dx + dy * dy) <= maxDist
-    }
-
-    /// Check if any hand joint point is inside the expanded face bounding box (40% expansion each direction).
-    private func isAnyHandPointNearFace(handPoints: [CGPoint], faceBox: CGRect) -> Bool {
-        let expandedBox = faceBox.insetBy(dx: -faceBox.width * 0.4, dy: -faceBox.height * 0.4)
-        return handPoints.contains { expandedBox.contains($0) }
-    }
-
-    /// Update rolling face area baseline using 80th percentile.
     private func updateBaseline(area: CGFloat) {
         faceAreaHistory.append(area)
         if faceAreaHistory.count > baselineWindowSize {
@@ -1037,29 +751,5 @@ private final class CaptureDelegate: NSObject, AVCaptureVideoDataOutputSampleBuf
         let sorted = faceAreaHistory.sorted()
         let idx = Int(Double(sorted.count - 1) * 0.80)
         adaptiveBaseline = sorted[idx]
-    }
-
-    /// Convert RGB (0–1) to HSV (h: 0–360, s: 0–1, v: 0–1).
-    private func rgbToHSV(r: CGFloat, g: CGFloat, b: CGFloat) -> (h: CGFloat, s: CGFloat, v: CGFloat) {
-        let maxC = max(r, g, b)
-        let minC = min(r, g, b)
-        let delta = maxC - minC
-
-        let v = maxC
-        let s: CGFloat = maxC == 0 ? 0 : delta / maxC
-
-        var h: CGFloat = 0
-        if delta > 0 {
-            if maxC == r {
-                h = 60.0 * fmod((g - b) / delta, 6.0)
-            } else if maxC == g {
-                h = 60.0 * ((b - r) / delta + 2.0)
-            } else {
-                h = 60.0 * ((r - g) / delta + 4.0)
-            }
-            if h < 0 { h += 360.0 }
-        }
-
-        return (h, s, v)
     }
 }

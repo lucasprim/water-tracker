@@ -18,9 +18,21 @@ final class AppSettings {
     var bottleColorHueTolerance: Float?     // degrees, default 15
     var bottleColorSatTolerance: Float?     // 0–1, default 0.15
 
+    // Detection algorithm
+    var selectedAlgorithmID: String?
+
     // Calibration photos (JPEG data)
     @Attribute(.externalStorage) var baselineImageData: Data?
     @Attribute(.externalStorage) var drinkingImageData: Data?
+
+    var detectionAlgorithm: DetectionAlgorithmID {
+        get {
+            selectedAlgorithmID.flatMap { DetectionAlgorithmID(rawValue: $0) } ?? .colorFingers
+        }
+        set {
+            selectedAlgorithmID = newValue.rawValue
+        }
+    }
 
     init(
         bottleSizeMl: Double = 500,

@@ -104,6 +104,7 @@ final class AppCoordinator {
             hueTolerance: settings.bottleColorHueTolerance,
             satTolerance: settings.bottleColorSatTolerance
         )
+        webcamMonitor.setDetectionAlgorithm(settings.detectionAlgorithm)
     }
 
     private func loadDrinkInterval() -> Int {

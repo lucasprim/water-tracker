@@ -30,6 +30,8 @@ final class CalibrationViewModel {
     var hueTolerance: Float = 15
     var satTolerance: Float = 0.15
 
+    var selectedAlgorithmID: DetectionAlgorithmID = .colorFingers
+
     /// True when the displayed image came from disk, not a fresh capture.
     var baselineIsStored = false
     var drinkingIsStored = false
@@ -76,6 +78,7 @@ final class CalibrationViewModel {
         }
         if let ht = settings.bottleColorHueTolerance { hueTolerance = ht }
         if let st = settings.bottleColorSatTolerance { satTolerance = st }
+        selectedAlgorithmID = settings.detectionAlgorithm
     }
 
     func tearDown() {
@@ -102,6 +105,7 @@ final class CalibrationViewModel {
             hueTolerance: hueTolerance,
             satTolerance: satTolerance
         )
+        webcamMonitor.setDetectionAlgorithm(selectedAlgorithmID)
         webcamMonitor.enableTesting()
         isTesting = true
     }
@@ -127,6 +131,7 @@ final class CalibrationViewModel {
             hueTolerance: hueTolerance,
             satTolerance: satTolerance
         )
+        webcamMonitor.setDetectionAlgorithm(selectedAlgorithmID)
     }
 
     func startCountdown(for target: CaptureTarget) {
@@ -228,6 +233,7 @@ final class CalibrationViewModel {
         settings.bottleColorHueTolerance = hueTolerance
         settings.bottleColorSatTolerance = satTolerance
         settings.calibrationDate = Date()
+        settings.detectionAlgorithm = selectedAlgorithmID
 
         // Persist photos
         if let img = baselineImage {
@@ -248,6 +254,7 @@ final class CalibrationViewModel {
             hueTolerance: hueTolerance,
             satTolerance: satTolerance
         )
+        webcamMonitor.setDetectionAlgorithm(selectedAlgorithmID)
     }
 
     // MARK: - Image Encoding/Decoding
@@ -294,9 +301,10 @@ struct CalibrationWindow: View {
 
             bottomBar
                 .padding(.horizontal, 20)
-                .padding(.vertical, 12)
+                .padding(.top, 16)
+                .padding(.bottom, 20)
         }
-        .frame(minWidth: 700, minHeight: 500)
+        .frame(minWidth: 700, minHeight: 580)
         .onAppear {
             viewModel.loadSaved(modelContext: modelContext)
         }
@@ -679,40 +687,68 @@ struct CalibrationWindow: View {
     // MARK: - Bottom Bar
 
     private var bottomBar: some View {
-        HStack {
-            Button("Cancel") {
-                viewModel.tearDown()
-                dismiss()
-            }
-
-            if viewModel.isTesting {
-                Button("Back") {
-                    viewModel.stopTesting()
-                }
-            }
-
-            Spacer()
-
-            if !viewModel.isTesting && viewModel.canSave {
-                Label("Ready to save", systemImage: "checkmark.circle")
+        VStack(spacing: 16) {
+            HStack(spacing: 8) {
+                Text("Algorithm")
                     .font(.caption)
-                    .foregroundStyle(.green)
-            }
-
-            Spacer()
-
-            if viewModel.canTest && !viewModel.isTesting {
-                Button("Test Calibration") {
-                    viewModel.startTesting()
+                    .foregroundStyle(.secondary)
+                Picker("Algorithm", selection: Binding(
+                    get: { viewModel.selectedAlgorithmID },
+                    set: {
+                        viewModel.selectedAlgorithmID = $0
+                        viewModel.pushTestingCalibration()
+                    }
+                )) {
+                    ForEach(DetectionAlgorithmID.allCases, id: \.self) { algo in
+                        Text(algo.displayName).tag(algo)
+                    }
                 }
+                .labelsHidden()
+                .fixedSize()
+
+                Text(viewModel.selectedAlgorithmID.description)
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+                    .lineLimit(2)
+
+                Spacer()
             }
 
-            Button("Save Calibration") {
-                viewModel.save(modelContext: modelContext)
-                dismiss()
+            HStack {
+                Button("Cancel") {
+                    viewModel.tearDown()
+                    dismiss()
+                }
+
+                if viewModel.isTesting {
+                    Button("Back") {
+                        viewModel.stopTesting()
+                    }
+                }
+
+                Spacer()
+
+                if !viewModel.isTesting && viewModel.canSave {
+                    Label("Ready to save", systemImage: "checkmark.circle")
+                        .font(.caption)
+                        .foregroundStyle(.green)
+                }
+
+                Spacer()
+
+                if viewModel.canTest && !viewModel.isTesting {
+                    Button("Test Calibration") {
+                        viewModel.startTesting()
+                    }
+                }
+
+                Button("Save Calibration") {
+                    viewModel.save(modelContext: modelContext)
+                    dismiss()
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(!viewModel.canSave)
             }
-            .buttonStyle(.borderedProminent)
-            .disabled(!viewModel.canSave)
         }
     }
 }

@@ -8,21 +8,23 @@
 
 /* Begin PBXBuildFile section */
 		0245D5CEA9AF825D286C0A5D /* WaterTrackerApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB1EAD9712CA07B5D94F5EF6 /* WaterTrackerApp.swift */; };
-		03850FEBD9C553EA816B144F /* CalibrationWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3191F744FD8AB8B55A32F52 /* CalibrationWindow.swift */; };
 		155740147EA37C315168C5B1 /* DrinkTimerManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D90B1049ECA1CB7F4FC6A83 /* DrinkTimerManager.swift */; };
 		33B0F7EEAC31A7A0C0D24C6F /* DailyProgressStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D42E56F1EF6754125985224 /* DailyProgressStore.swift */; };
 		3C53C5594FCD2504DAEB8599 /* WaterCupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9692B60AE615CFA9B56D063A /* WaterCupView.swift */; };
 		3DDA863C194E3AE0F71230F5 /* DrinkTimerManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43CD7FE47218F8042B598D87 /* DrinkTimerManagerTests.swift */; };
 		3EC6FF6CABD4672D9906C0A7 /* WaterEntry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7FC99214F72672A21A971491 /* WaterEntry.swift */; };
-		434D7D2B5513D19946B5C288 /* CameraFrameView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F92C49105E79F1CCB3B9D3A2 /* CameraFrameView.swift */; };
+		5067C93827A632D84AEBCD5B /* ScreenEdgeOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2AD5F2213D2C63AB717E0840 /* ScreenEdgeOverlay.swift */; };
 		5D7A4913FACBEAF54C79644C /* AppCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3482200388FC9196A0884640 /* AppCoordinator.swift */; };
 		5DEF38C98287116931BE5EF9 /* AppSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D646925D6EDFCBD4BC0D160 /* AppSettings.swift */; };
+		624E89EAFF13FCB794484BC4 /* DetectionAlgorithm.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1999077F59937B6414F3B14 /* DetectionAlgorithm.swift */; };
 		63201D4F3A6E4D55A62D98F1 /* yolov8n.mlpackage in Sources */ = {isa = PBXBuildFile; fileRef = 866F83C716007A01557A3059 /* yolov8n.mlpackage */; };
 		9550151A2A6703B6BE85E44B /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9670BF52F1A53A8517206143 /* AppDelegate.swift */; };
 		AE7E69E685E5367AF7E02B9E /* WaterTrackerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5FB2A81CECD2E4D0015154FC /* WaterTrackerTests.swift */; };
 		AF03542B65AC47ABDA949061 /* NotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F3BD7410B2FC202ACE26027 /* NotificationService.swift */; };
-		B1A2C3D4E5F60718293A4B5C /* ScreenEdgeOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60718293A4B5D /* ScreenEdgeOverlay.swift */; };
+		C1EED8CF36366F29E34118AA /* CameraFrameView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 879FD637549FA4EC101CB69D /* CameraFrameView.swift */; };
+		C6C37AC255579922B7DB908C /* ColorFingersAlgorithm.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0EF038CDBC3850B318B0F431 /* ColorFingersAlgorithm.swift */; };
 		CDE2E32115A29E4D2C8D8478 /* PopoverContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 97CC81C662AD46C3E62327E6 /* PopoverContentView.swift */; };
+		E23526DB06BB9466E4AD4670 /* CalibrationWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = FFB5B4988E06536BED5B5CA4 /* CalibrationWindow.swift */; };
 		EE57E38837762440B5FF87E9 /* DailyProgressStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3334FAD20CC92BFA57AC4CEC /* DailyProgressStoreTests.swift */; };
 		F25DE17918433804B6A17BD6 /* EntrySource.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F29014985ECF8520A61D9C6 /* EntrySource.swift */; };
 		F284AD3B0511B33492FF7FAC /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = FE16D539EFC04F5511FA9C75 /* Assets.xcassets */; };
@@ -42,9 +44,10 @@
 
 /* Begin PBXFileReference section */
 		0D42E56F1EF6754125985224 /* DailyProgressStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyProgressStore.swift; sourceTree = "<group>"; };
+		0EF038CDBC3850B318B0F431 /* ColorFingersAlgorithm.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ColorFingersAlgorithm.swift; sourceTree = "<group>"; };
 		0F3BD7410B2FC202ACE26027 /* NotificationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationService.swift; sourceTree = "<group>"; };
-		A1B2C3D4E5F60718293A4B5D /* ScreenEdgeOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenEdgeOverlay.swift; sourceTree = "<group>"; };
 		1D90B1049ECA1CB7F4FC6A83 /* DrinkTimerManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DrinkTimerManager.swift; sourceTree = "<group>"; };
+		2AD5F2213D2C63AB717E0840 /* ScreenEdgeOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenEdgeOverlay.swift; sourceTree = "<group>"; };
 		3334FAD20CC92BFA57AC4CEC /* DailyProgressStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyProgressStoreTests.swift; sourceTree = "<group>"; };
 		3482200388FC9196A0884640 /* AppCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppCoordinator.swift; sourceTree = "<group>"; };
 		34B025CD076EC6102ECC855C /* WebcamMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebcamMonitor.swift; sourceTree = "<group>"; };
@@ -57,15 +60,16 @@
 		7FC99214F72672A21A971491 /* WaterEntry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WaterEntry.swift; sourceTree = "<group>"; };
 		83BFE5C055BF9AD72EE6FBEE /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		866F83C716007A01557A3059 /* yolov8n.mlpackage */ = {isa = PBXFileReference; path = yolov8n.mlpackage; sourceTree = "<group>"; };
+		879FD637549FA4EC101CB69D /* CameraFrameView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraFrameView.swift; sourceTree = "<group>"; };
 		9670BF52F1A53A8517206143 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		9692B60AE615CFA9B56D063A /* WaterCupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WaterCupView.swift; sourceTree = "<group>"; };
 		97CC81C662AD46C3E62327E6 /* PopoverContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PopoverContentView.swift; sourceTree = "<group>"; };
 		9DB159053107388D9B89CFBA /* WaterTracker.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = WaterTracker.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		D3191F744FD8AB8B55A32F52 /* CalibrationWindow.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CalibrationWindow.swift; sourceTree = "<group>"; };
+		E1999077F59937B6414F3B14 /* DetectionAlgorithm.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DetectionAlgorithm.swift; sourceTree = "<group>"; };
 		F27C9CF8160F53A98AB362DB /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
-		F92C49105E79F1CCB3B9D3A2 /* CameraFrameView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CameraFrameView.swift; sourceTree = "<group>"; };
 		FB1EAD9712CA07B5D94F5EF6 /* WaterTrackerApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WaterTrackerApp.swift; sourceTree = "<group>"; };
 		FE16D539EFC04F5511FA9C75 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		FFB5B4988E06536BED5B5CA4 /* CalibrationWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalibrationWindow.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -131,12 +135,23 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
+		6B79F8E1FD98C2793A0B9525 /* Calibration */ = {
+			isa = PBXGroup;
+			children = (
+				FFB5B4988E06536BED5B5CA4 /* CalibrationWindow.swift */,
+				879FD637549FA4EC101CB69D /* CameraFrameView.swift */,
+			);
+			path = Calibration;
+			sourceTree = "<group>";
+		};
 		78DD4F9FC5191406B94393D1 /* Services */ = {
 			isa = PBXGroup;
 			children = (
+				0EF038CDBC3850B318B0F431 /* ColorFingersAlgorithm.swift */,
+				E1999077F59937B6414F3B14 /* DetectionAlgorithm.swift */,
 				1D90B1049ECA1CB7F4FC6A83 /* DrinkTimerManager.swift */,
 				0F3BD7410B2FC202ACE26027 /* NotificationService.swift */,
-				A1B2C3D4E5F60718293A4B5D /* ScreenEdgeOverlay.swift */,
+				2AD5F2213D2C63AB717E0840 /* ScreenEdgeOverlay.swift */,
 				34B025CD076EC6102ECC855C /* WebcamMonitor.swift */,
 			);
 			path = Services;
@@ -148,16 +163,6 @@
 				F27C9CF8160F53A98AB362DB /* SettingsView.swift */,
 			);
 			path = Settings;
-			sourceTree = "<group>";
-		};
-		ABEBEA53663EE8268A7BAF9C /* Calibration */ = {
-			isa = PBXGroup;
-			children = (
-				F92C49105E79F1CCB3B9D3A2 /* CameraFrameView.swift */,
-				D3191F744FD8AB8B55A32F52 /* CalibrationWindow.swift */,
-			);
-			name = Calibration;
-			path = Calibration;
 			sourceTree = "<group>";
 		};
 		AC2FE9B1AA7DCD50F3A744FD /* MenuBar */ = {
@@ -172,9 +177,9 @@
 		C739B9C49E0E68EF068155A2 /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				6B79F8E1FD98C2793A0B9525 /* Calibration */,
 				AC2FE9B1AA7DCD50F3A744FD /* MenuBar */,
 				96452AE526B57D51B3482FF1 /* Settings */,
-				ABEBEA53663EE8268A7BAF9C /* Calibration */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -204,6 +209,8 @@
 			dependencies = (
 			);
 			name = WaterTracker;
+			packageProductDependencies = (
+			);
 			productName = WaterTracker;
 			productReference = 9DB159053107388D9B89CFBA /* WaterTracker.app */;
 			productType = "com.apple.product-type.application";
@@ -220,6 +227,8 @@
 				8BA307EB28A08FE0433DA061 /* PBXTargetDependency */,
 			);
 			name = WaterTrackerTests;
+			packageProductDependencies = (
+			);
 			productName = WaterTrackerTests;
 			productReference = 35A6750DD947BC79625010F8 /* WaterTrackerTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
@@ -244,7 +253,6 @@
 			mainGroup = 31DFA1BDA0A4D72D1D12875C;
 			minimizedProjectReferenceProxies = 1;
 			preferredProjectObjectVersion = 77;
-			productRefGroup = 647A666F2B6A96E5861FC73D /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
@@ -273,20 +281,22 @@
 				5D7A4913FACBEAF54C79644C /* AppCoordinator.swift in Sources */,
 				9550151A2A6703B6BE85E44B /* AppDelegate.swift in Sources */,
 				5DEF38C98287116931BE5EF9 /* AppSettings.swift in Sources */,
+				E23526DB06BB9466E4AD4670 /* CalibrationWindow.swift in Sources */,
+				C1EED8CF36366F29E34118AA /* CameraFrameView.swift in Sources */,
+				C6C37AC255579922B7DB908C /* ColorFingersAlgorithm.swift in Sources */,
 				33B0F7EEAC31A7A0C0D24C6F /* DailyProgressStore.swift in Sources */,
+				624E89EAFF13FCB794484BC4 /* DetectionAlgorithm.swift in Sources */,
 				155740147EA37C315168C5B1 /* DrinkTimerManager.swift in Sources */,
 				F25DE17918433804B6A17BD6 /* EntrySource.swift in Sources */,
 				AF03542B65AC47ABDA949061 /* NotificationService.swift in Sources */,
-				B1A2C3D4E5F60718293A4B5C /* ScreenEdgeOverlay.swift in Sources */,
 				CDE2E32115A29E4D2C8D8478 /* PopoverContentView.swift in Sources */,
+				5067C93827A632D84AEBCD5B /* ScreenEdgeOverlay.swift in Sources */,
 				FE004EBD46FDC7A82038B7F0 /* SettingsView.swift in Sources */,
 				3C53C5594FCD2504DAEB8599 /* WaterCupView.swift in Sources */,
 				3EC6FF6CABD4672D9906C0A7 /* WaterEntry.swift in Sources */,
 				0245D5CEA9AF825D286C0A5D /* WaterTrackerApp.swift in Sources */,
 				FF7FA82ECC81A158BDF65A3C /* WebcamMonitor.swift in Sources */,
 				63201D4F3A6E4D55A62D98F1 /* yolov8n.mlpackage in Sources */,
-				434D7D2B5513D19946B5C288 /* CameraFrameView.swift in Sources */,
-				03850FEBD9C553EA816B144F /* CalibrationWindow.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
