@@ -4,47 +4,19 @@ import AppKit
 
 struct PopoverContentView: View {
     @Environment(\.modelContext) private var modelContext
-    @Environment(\.openWindow) private var openWindow
     @State private var store: DailyProgressStore?
-    @State private var showingSettings = false
     var timerManager: DrinkTimerManager
     var webcamMonitor: WebcamMonitor
-    var cameraDeviceManager: CameraDeviceManager?
-    var appCoordinator: AppCoordinator?
     @Binding var completionPercentage: Double
 
     var body: some View {
         Group {
             if let store {
-                if showingSettings {
-                    SettingsView(
-                        cameraDeviceManager: cameraDeviceManager,
-                        webcamMonitor: webcamMonitor,
-                        onSave: {
-                            store.refresh()
-                            reloadTimerInterval()
-                            showingSettings = false
-                        },
-                        onCancel: {
-                            showingSettings = false
-                        },
-                        onOpenCalibration: {
-                            NSApp.activate(ignoringOtherApps: true)
-                            openWindow(id: "calibration")
-                        },
-                        onCameraChanged: { cameraID in
-                            appCoordinator?.restartWebcamWithCamera(cameraID)
-                        }
-                    )
-                    .environment(\.modelContext, modelContext)
-                } else {
-                    PopoverBody(
-                        store: store,
-                        timerManager: timerManager,
-                        webcamMonitor: webcamMonitor,
-                        onOpenSettings: { showingSettings = true }
-                    )
-                }
+                PopoverBody(
+                    store: store,
+                    timerManager: timerManager,
+                    webcamMonitor: webcamMonitor
+                )
             } else {
                 ProgressView()
                     .frame(width: 320, height: 300)
@@ -55,23 +27,17 @@ struct PopoverContentView: View {
                 let s = DailyProgressStore(modelContext: modelContext)
                 store = s
                 completionPercentage = s.completionPercentage
+            } else {
+                store?.refresh()
+                if let pct = store?.completionPercentage {
+                    completionPercentage = pct
+                }
             }
         }
         .onChange(of: store?.completionPercentage) { _, newValue in
             if let newValue {
                 completionPercentage = newValue
             }
-        }
-    }
-
-    @MainActor
-    private func reloadTimerInterval() {
-        guard let store else { return }
-        let descriptor = FetchDescriptor<AppSettings>()
-        if let settings = try? store.modelContext.fetch(descriptor).first {
-            timerManager.start(intervalMinutes: settings.drinkIntervalMinutes)
-        } else {
-            timerManager.reset()
         }
     }
 }
@@ -82,7 +48,6 @@ private struct PopoverBody: View {
     @Bindable var store: DailyProgressStore
     var timerManager: DrinkTimerManager
     var webcamMonitor: WebcamMonitor
-    var onOpenSettings: () -> Void
     @State private var tappedButtonId: Int?
     @State private var showConfetti = false
     @State private var wasGoalReached = false
@@ -304,7 +269,8 @@ private struct PopoverBody: View {
 
     private var settingsButton: some View {
         Button {
-            onOpenSettings()
+            NSApp.activate(ignoringOtherApps: true)
+            NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
         } label: {
             Label("Settings", systemImage: "gearshape")
                 .font(.subheadline)

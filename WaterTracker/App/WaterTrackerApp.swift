@@ -27,8 +27,6 @@ struct WaterTrackerApp: App {
             PopoverContentView(
                         timerManager: timerManager,
                         webcamMonitor: webcamMonitor,
-                        cameraDeviceManager: cameraDeviceManager,
-                        appCoordinator: appCoordinator,
                         completionPercentage: $completionPercentage
                     )
                 .modelContainer(container)
@@ -58,6 +56,23 @@ struct WaterTrackerApp: App {
             )
         }
         .menuBarExtraStyle(.window)
+
+        Settings {
+            SettingsWindow(
+                cameraDeviceManager: cameraDeviceManager,
+                webcamMonitor: webcamMonitor,
+                onOpenCalibration: {
+                    NSApp.activate(ignoringOtherApps: true)
+                },
+                onCameraChanged: { cameraID in
+                    appCoordinator?.restartWebcamWithCamera(cameraID)
+                },
+                onSettingsSaved: {
+                    // Popover store will refresh on next appear
+                }
+            )
+            .modelContainer(container)
+        }
 
         Window("Calibrate Detection", id: "calibration") {
             CalibrationWindow(webcamMonitor: webcamMonitor)
