@@ -76,6 +76,8 @@ private struct PopoverBody: View {
     var webcamMonitor: WebcamMonitor
     var onOpenSettings: () -> Void
     @State private var tappedButtonId: Int?
+    @State private var showConfetti = false
+    @State private var wasGoalReached = false
 
     var body: some View {
         VStack(spacing: 16) {
@@ -108,6 +110,18 @@ private struct PopoverBody: View {
         .padding(24)
         .frame(width: 320)
         .background(.thinMaterial)
+        .overlay {
+            ConfettiView(isActive: $showConfetti)
+        }
+        .onChange(of: store.isGoalReached) { _, reached in
+            if reached && !wasGoalReached {
+                showConfetti = true
+            }
+            wasGoalReached = reached
+        }
+        .onAppear {
+            wasGoalReached = store.isGoalReached
+        }
     }
 
     // MARK: - Subviews

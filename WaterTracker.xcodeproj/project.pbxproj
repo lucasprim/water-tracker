@@ -12,6 +12,7 @@
 		33B0F7EEAC31A7A0C0D24C6F /* DailyProgressStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D42E56F1EF6754125985224 /* DailyProgressStore.swift */; };
 		3C53C5594FCD2504DAEB8599 /* WaterCupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9692B60AE615CFA9B56D063A /* WaterCupView.swift */; };
 		A1B2C3D4E5F6A7B8C9D0E1F3 /* ProgressRingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6A7B8C9D0E1F4 /* ProgressRingView.swift */; };
+		B1C2D3E4F5A6B7C8D9E0F1A2 /* ConfettiView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1C2D3E4F5A6B7C8D9E0F1A3 /* ConfettiView.swift */; };
 		3DDA863C194E3AE0F71230F5 /* DrinkTimerManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43CD7FE47218F8042B598D87 /* DrinkTimerManagerTests.swift */; };
 		3EC6FF6CABD4672D9906C0A7 /* WaterEntry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7FC99214F72672A21A971491 /* WaterEntry.swift */; };
 		5067C93827A632D84AEBCD5B /* ScreenEdgeOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2AD5F2213D2C63AB717E0840 /* ScreenEdgeOverlay.swift */; };
@@ -67,6 +68,7 @@
 		9670BF52F1A53A8517206143 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		9692B60AE615CFA9B56D063A /* WaterCupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WaterCupView.swift; sourceTree = "<group>"; };
 		A1B2C3D4E5F6A7B8C9D0E1F4 /* ProgressRingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressRingView.swift; sourceTree = "<group>"; };
+		B1C2D3E4F5A6B7C8D9E0F1A3 /* ConfettiView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfettiView.swift; sourceTree = "<group>"; };
 		97CC81C662AD46C3E62327E6 /* PopoverContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PopoverContentView.swift; sourceTree = "<group>"; };
 		9DB159053107388D9B89CFBA /* WaterTracker.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = WaterTracker.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		E1999077F59937B6414F3B14 /* DetectionAlgorithm.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DetectionAlgorithm.swift; sourceTree = "<group>"; };
@@ -173,6 +175,7 @@
 		AC2FE9B1AA7DCD50F3A744FD /* MenuBar */ = {
 			isa = PBXGroup;
 			children = (
+				B1C2D3E4F5A6B7C8D9E0F1A3 /* ConfettiView.swift */,
 				97CC81C662AD46C3E62327E6 /* PopoverContentView.swift */,
 				A1B2C3D4E5F6A7B8C9D0E1F4 /* ProgressRingView.swift */,
 				9692B60AE615CFA9B56D063A /* WaterCupView.swift */,
@@ -297,6 +300,7 @@
 				F25DE17918433804B6A17BD6 /* EntrySource.swift in Sources */,
 				AF03542B65AC47ABDA949061 /* NotificationService.swift in Sources */,
 				CDE2E32115A29E4D2C8D8478 /* PopoverContentView.swift in Sources */,
+				B1C2D3E4F5A6B7C8D9E0F1A2 /* ConfettiView.swift in Sources */,
 				A1B2C3D4E5F6A7B8C9D0E1F3 /* ProgressRingView.swift in Sources */,
 				5067C93827A632D84AEBCD5B /* ScreenEdgeOverlay.swift in Sources */,
 				FE004EBD46FDC7A82038B7F0 /* SettingsView.swift in Sources */,
