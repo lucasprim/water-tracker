@@ -1,0 +1,35 @@
+{
+  "id": "ux-overhaul_20260306",
+  "title": "UX Overhaul",
+  "type": "feature",
+  "status": "complete",
+  "created": "2026-03-06T00:00:00Z",
+  "updated": "2026-03-06T15:00:00Z",
+  "current_phase": 5,
+  "current_task": "5.7",
+  "phases": {
+    "total": 5,
+    "completed": 5
+  },
+  "tasks": {
+    "total": 31,
+    "completed": 31
+  },
+  "commits": [
+    "e3058b3: feat(ui): add ProgressRingView with animated circular progress and gradient stroke",
+    "823131c: feat(ui): add wave fill animation inside progress ring",
+    "965c6d5: style(ui): widen popover to 320px and add thinMaterial background",
+    "9c6b95a: feat(ui): replace WaterCupView with ProgressRingView in popover",
+    "5947403: feat(ui): add preset bottle size quick-log buttons",
+    "12a8ac5: feat(ui): add sound feedback on water log",
+    "7fe7400: feat(ui): add button scale bounce animation on preset tap",
+    "2e9090e: feat(ui): add confetti celebration when daily goal is reached",
+    "68387e6: feat(ui): add undo toast after logging water",
+    "5a45dfa: refactor(ui): remove context menu undo, replaced by undo toast",
+    "540f13c: feat(ui): dynamic menu bar icon reflecting daily fill level",
+    "e13d32a: feat(ui): add global keyboard shortcut (Ctrl+Shift+W) for quick-log",
+    "9c90e94: feat(data): add streak calculation and weekly data to DailyProgressStore",
+    "2465f5f: feat(ui): add streak display and weekly bar chart to popover",
+    "420fffe: feat(ui): add Settings window with TabView, remove embedded settings from popover"
+  ]
+}
