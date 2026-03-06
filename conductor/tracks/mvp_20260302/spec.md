@@ -3,7 +3,7 @@
 **Track ID:** mvp_20260302
 **Type:** Feature
 **Created:** 2026-03-02
-**Status:** Draft
+**Status:** Complete
 
 ## Summary
 
@@ -26,24 +26,24 @@ as a beautiful animated cup — so I stay motivated without interrupting my work
 
 ## Acceptance Criteria
 
-- [ ] App lives in the menu bar; clicking the icon opens a popover/panel
-- [ ] The popover features a realistic animated cup showing the current hydration
+- [x] App lives in the menu bar; clicking the icon opens a popover/panel
+- [x] The popover features a realistic animated cup showing the current hydration
       level as a rising water fill (with subtle sloshing water animation)
-- [ ] A "Log Bottle" button records a water entry using the configured bottle
+- [x] A "Log Bottle" button records a water entry using the configured bottle
       size; the cup animates to the new fill level
-- [ ] Daily water goal is configurable (ml); the cup fill % reflects
+- [x] Daily water goal is configurable (ml); the cup fill % reflects
       logged-ml / goal-ml
-- [ ] The webcam runs continuously in the background using non-exclusive camera
+- [x] The webcam runs continuously in the background using non-exclusive camera
       access (Zoom/FaceTime can use the camera simultaneously)
-- [ ] A countdown timer is visible in the menu bar; the user configures the
+- [x] A countdown timer is visible in the menu bar; the user configures the
       max drink interval (default: 15 min)
-- [ ] When drinking is detected by the webcam, the timer resets, the menu bar
-      icon turns blue momentarily, and a water entry is auto-logged
-- [ ] If the timer expires, a system alert notification is shown
-- [ ] Monitoring and the timer stop automatically once the daily goal is met
-- [ ] A settings screen (clean, native macOS style) allows configuring: bottle
+- [x] When drinking is detected by the webcam, the timer resets and the menu bar
+      icon turns blue momentarily (bottle logging is manual only per design decision)
+- [x] If the timer expires, a system alert notification is shown
+- [x] Monitoring and the timer stop automatically once the daily goal is met
+- [x] A settings screen (clean, native macOS style) allows configuring: bottle
       size, daily goal, and max drink interval
-- [ ] Overall visual design is polished: smooth animations, consistent spacing,
+- [x] Overall visual design is polished: smooth animations, consistent spacing,
       clear typography
 
 ## Dependencies

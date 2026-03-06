@@ -2,18 +2,18 @@
   "id": "mvp_20260302",
   "title": "Water Tracker MVP",
   "type": "feature",
-  "status": "in_progress",
+  "status": "complete",
   "created": "2026-03-02T00:00:00Z",
-  "updated": "2026-03-02T00:00:00Z",
+  "updated": "2026-03-06T00:00:00Z",
   "current_phase": 7,
   "current_task": "7.6",
   "phases": {
     "total": 7,
-    "completed": 6
+    "completed": 7
   },
   "tasks": {
     "total": 33,
-    "completed": 32
+    "completed": 33
   },
   "commits": [
     "6a1729f: feat: scaffold macOS project with MenuBarExtra and placeholder popover",

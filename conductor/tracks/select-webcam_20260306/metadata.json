@@ -1,0 +1,22 @@
+{
+  "id": "select-webcam_20260306",
+  "title": "Select Webcam",
+  "type": "feature",
+  "status": "complete",
+  "created": "2026-03-06T00:00:00Z",
+  "updated": "2026-03-06T14:36:00Z",
+  "current_phase": 3,
+  "current_task": "3.3",
+  "phases": {
+    "total": 3,
+    "completed": 3
+  },
+  "tasks": {
+    "total": 11,
+    "completed": 11
+  },
+  "commits": [
+    "10ddff5: feat(settings): add camera selection data layer (select-webcam_20260306)",
+    "0f871d8: feat(webcam): use selected camera with fallback and hot-unplug (select-webcam_20260306)"
+  ]
+}
