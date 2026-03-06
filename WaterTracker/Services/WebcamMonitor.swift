@@ -52,9 +52,15 @@ final class WebcamMonitor {
     /// (baselineArea, dropThreshold, bottleHue?, bottleSaturation?)
     var onCalibrationComplete: ((Float, Float, Float?, Float?) -> Void)?
 
+    /// Notice shown when the selected camera was unavailable and we fell back to default
+    private(set) var fallbackNotice: String?
+
     /// True while positive detection frames are arriving (for menu bar icon)
     private(set) var isDrinkingActive = false
     private var drinkingDeactivationTask: Task<Void, Never>?
+
+    /// The camera uniqueID to use (nil = system default)
+    private var selectedCameraID: String?
 
     // Preview mode for calibration UI
     private(set) var latestFrame: CGImage?
@@ -75,8 +81,10 @@ final class WebcamMonitor {
     private let requiredPositiveFrames = 2
     private let maxLogEntries = 60
 
-    func start() {
-        logger.notice("WebcamMonitor.start() called, current status: \(self.status.rawValue)")
+    func start(cameraID: String? = nil) {
+        selectedCameraID = cameraID
+        fallbackNotice = nil
+        logger.notice("WebcamMonitor.start() called, cameraID: \(cameraID ?? "default"), status: \(self.status.rawValue)")
         checkPermissionAndStart()
     }
 
@@ -265,10 +273,11 @@ final class WebcamMonitor {
             }
         }
 
+        let cameraID = selectedCameraID
         sessionQueue.async { [weak self] in
             guard let self else { return }
             self.loadObjectDetectionModel()
-            self.configureSessionOnBackground()
+            self.configureSessionOnBackground(cameraID: cameraID)
         }
     }
 
@@ -289,7 +298,7 @@ final class WebcamMonitor {
         }
     }
 
-    private nonisolated func configureSessionOnBackground() {
+    private nonisolated func configureSessionOnBackground(cameraID: String?) {
         logger.notice("Configuring capture session...")
 
         let session = AVCaptureSession()
@@ -301,11 +310,33 @@ final class WebcamMonitor {
             session.sessionPreset = .medium
         }
 
-        guard let camera = AVCaptureDevice.default(for: .video) else {
+        // Resolve camera: selected ID → specific device, fallback → system default
+        let requestedID = cameraID
+        var camera: AVCaptureDevice?
+        var didFallback = false
+
+        if let requestedID {
+            camera = AVCaptureDevice(uniqueID: requestedID)
+            if camera == nil {
+                logger.warning("Selected camera \(requestedID) not found, falling back to default")
+                camera = AVCaptureDevice.default(for: .video)
+                didFallback = true
+            }
+        } else {
+            camera = AVCaptureDevice.default(for: .video)
+        }
+
+        guard let camera else {
             logger.error("No video capture device found")
             Task { @MainActor in self.setError("No camera found") }
             session.commitConfiguration()
             return
+        }
+
+        if didFallback {
+            Task { @MainActor in
+                self.fallbackNotice = "Selected camera unavailable — using \(camera.localizedName)"
+            }
         }
 
         do {
@@ -423,7 +454,26 @@ final class WebcamMonitor {
             }
         }
 
-        sessionObservers = [interruptedObserver, resumedObserver, runtimeErrorObserver]
+        // Observe camera disconnect — restart with fallback if active camera is unplugged
+        let deviceDisconnectObserver = NotificationCenter.default.addObserver(
+            forName: AVCaptureDevice.wasDisconnectedNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] notification in
+            Task { @MainActor in
+                guard let self else { return }
+                guard let device = notification.object as? AVCaptureDevice else { return }
+                // Check if the disconnected device is the one we're currently using
+                guard let currentInput = session.inputs.first as? AVCaptureDeviceInput,
+                      currentInput.device.uniqueID == device.uniqueID else { return }
+                logger.warning("Active camera disconnected: \(device.localizedName)")
+                self.stop()
+                self.start(cameraID: nil)  // Restart with default
+                self.fallbackNotice = "\(device.localizedName) disconnected — using default camera"
+            }
+        }
+
+        sessionObservers = [interruptedObserver, resumedObserver, runtimeErrorObserver, deviceDisconnectObserver]
     }
 
     private func removeSessionObservers() {
