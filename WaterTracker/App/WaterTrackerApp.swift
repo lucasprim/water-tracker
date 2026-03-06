@@ -13,6 +13,7 @@ struct WaterTrackerApp: App {
     @State private var webcamMonitor = WebcamMonitor()
     @State private var cameraDeviceManager = CameraDeviceManager()
     @State private var appCoordinator: AppCoordinator?
+    @State private var completionPercentage: Double = 0
 
     init() {
         let schema = Schema([WaterEntry.self, AppSettings.self])
@@ -26,8 +27,7 @@ struct WaterTrackerApp: App {
             PopoverContentView(
                         timerManager: timerManager,
                         webcamMonitor: webcamMonitor,
-                        cameraDeviceManager: cameraDeviceManager,
-                        appCoordinator: appCoordinator
+                        completionPercentage: $completionPercentage
                     )
                 .modelContainer(container)
                 .onAppear {
@@ -40,6 +40,10 @@ struct WaterTrackerApp: App {
                             webcamMonitor: webcamMonitor,
                             modelContext: container.mainContext
                         )
+                        coordinator.onQuickLog = { [weak coordinator] in
+                            // Refresh will happen when popover appears next
+                            _ = coordinator
+                        }
                         coordinator.start()
                         appCoordinator = coordinator
                     }
@@ -47,10 +51,28 @@ struct WaterTrackerApp: App {
         } label: {
             MenuBarLabel(
                 timerManager: timerManager,
-                webcamMonitor: webcamMonitor
+                webcamMonitor: webcamMonitor,
+                completionPercentage: completionPercentage
             )
         }
         .menuBarExtraStyle(.window)
+
+        Settings {
+            SettingsWindow(
+                cameraDeviceManager: cameraDeviceManager,
+                webcamMonitor: webcamMonitor,
+                onOpenCalibration: {
+                    NSApp.activate(ignoringOtherApps: true)
+                },
+                onCameraChanged: { cameraID in
+                    appCoordinator?.restartWebcamWithCamera(cameraID)
+                },
+                onSettingsSaved: {
+                    // Popover store will refresh on next appear
+                }
+            )
+            .modelContainer(container)
+        }
 
         Window("Calibrate Detection", id: "calibration") {
             CalibrationWindow(webcamMonitor: webcamMonitor)
@@ -66,13 +88,14 @@ struct WaterTrackerApp: App {
 private struct MenuBarLabel: View {
     let timerManager: DrinkTimerManager
     var webcamMonitor: WebcamMonitor
+    var completionPercentage: Double
 
     var body: some View {
         HStack(spacing: 4) {
             if webcamMonitor.isDrinkingActive {
                 Image(nsImage: Self.coloredDropImage)
             } else {
-                Image(systemName: "drop.fill")
+                Image(systemName: "drop.fill", variableValue: completionPercentage)
             }
             if !timerManager.formattedTimeRemaining.isEmpty {
                 Text(timerManager.formattedTimeRemaining)
@@ -91,7 +114,6 @@ private struct MenuBarLabel: View {
         let image = NSImage(size: size, flipped: false) { rect in
             NSColor.systemBlue.set()
             configured.draw(in: rect, from: .zero, operation: .sourceOver, fraction: 1.0)
-            // Tint by drawing color over the symbol using sourceAtop
             NSColor.systemBlue.set()
             rect.fill(using: .sourceAtop)
             return true

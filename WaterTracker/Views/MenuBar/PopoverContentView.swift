@@ -1,68 +1,43 @@
 import SwiftUI
 import SwiftData
+import AppKit
 
 struct PopoverContentView: View {
     @Environment(\.modelContext) private var modelContext
-    @Environment(\.openWindow) private var openWindow
     @State private var store: DailyProgressStore?
-    @State private var showingSettings = false
     var timerManager: DrinkTimerManager
     var webcamMonitor: WebcamMonitor
-    var cameraDeviceManager: CameraDeviceManager?
-    var appCoordinator: AppCoordinator?
+    @Binding var completionPercentage: Double
 
     var body: some View {
         Group {
             if let store {
-                if showingSettings {
-                    SettingsView(
-                        cameraDeviceManager: cameraDeviceManager,
-                        webcamMonitor: webcamMonitor,
-                        onSave: {
-                            store.refresh()
-                            reloadTimerInterval()
-                            showingSettings = false
-                        },
-                        onCancel: {
-                            showingSettings = false
-                        },
-                        onOpenCalibration: {
-                            NSApp.activate(ignoringOtherApps: true)
-                            openWindow(id: "calibration")
-                        },
-                        onCameraChanged: { cameraID in
-                            appCoordinator?.restartWebcamWithCamera(cameraID)
-                        }
-                    )
-                    .environment(\.modelContext, modelContext)
-                } else {
-                    PopoverBody(
-                        store: store,
-                        timerManager: timerManager,
-                        webcamMonitor: webcamMonitor,
-                        onOpenSettings: { showingSettings = true }
-                    )
-                }
+                PopoverBody(
+                    store: store,
+                    timerManager: timerManager,
+                    webcamMonitor: webcamMonitor
+                )
             } else {
                 ProgressView()
-                    .frame(width: 280, height: 300)
+                    .frame(width: 320, height: 300)
             }
         }
         .onAppear {
             if store == nil {
-                store = DailyProgressStore(modelContext: modelContext)
+                let s = DailyProgressStore(modelContext: modelContext)
+                store = s
+                completionPercentage = s.completionPercentage
+            } else {
+                store?.refresh()
+                if let pct = store?.completionPercentage {
+                    completionPercentage = pct
+                }
             }
         }
-    }
-
-    @MainActor
-    private func reloadTimerInterval() {
-        guard let store else { return }
-        let descriptor = FetchDescriptor<AppSettings>()
-        if let settings = try? store.modelContext.fetch(descriptor).first {
-            timerManager.start(intervalMinutes: settings.drinkIntervalMinutes)
-        } else {
-            timerManager.reset()
+        .onChange(of: store?.completionPercentage) { _, newValue in
+            if let newValue {
+                completionPercentage = newValue
+            }
         }
     }
 }
@@ -73,18 +48,39 @@ private struct PopoverBody: View {
     @Bindable var store: DailyProgressStore
     var timerManager: DrinkTimerManager
     var webcamMonitor: WebcamMonitor
-    var onOpenSettings: () -> Void
+    @State private var tappedButtonId: Int?
+    @State private var showConfetti = false
+    @State private var wasGoalReached = false
+    @State private var undoToastMl: Int?
+    @State private var undoToastTask: Task<Void, Never>?
+    @State private var showWeeklyChart = false
 
     var body: some View {
         VStack(spacing: 16) {
-            WaterCupView(fillPercentage: store.completionPercentage)
-
-            progressLabel
+            ProgressRingView(
+                fillPercentage: store.completionPercentage,
+                currentMl: store.todayTotalMl,
+                goalMl: store.goalMl
+            )
 
             if store.isGoalReached {
                 goalReachedView
             } else {
-                logButton
+                presetButtons
+            }
+
+            // Streak
+            if store.currentStreak > 0 {
+                streakView
+            }
+
+            // Weekly chart
+            DisclosureGroup(isExpanded: $showWeeklyChart) {
+                WeeklyChartView(weeklyData: store.weeklyData, goalMl: store.goalMl)
+            } label: {
+                Text("Weekly")
+                    .font(.system(.caption, design: .rounded, weight: .medium))
+                    .foregroundStyle(.secondary)
             }
 
             if webcamMonitor.status == .denied {
@@ -102,45 +98,119 @@ private struct PopoverBody: View {
             }
         }
         .padding(24)
-        .frame(width: 280)
+        .frame(width: 320)
+        .background(.thinMaterial)
+        .overlay(alignment: .bottom) {
+            if let ml = undoToastMl {
+                undoToast(ml: ml)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                    .padding(.bottom, 8)
+            }
+        }
+        .animation(.easeInOut(duration: 0.25), value: undoToastMl)
+        .overlay {
+            ConfettiView(isActive: $showConfetti)
+        }
+        .onChange(of: store.isGoalReached) { _, reached in
+            if reached && !wasGoalReached {
+                showConfetti = true
+            }
+            wasGoalReached = reached
+        }
+        .onAppear {
+            wasGoalReached = store.isGoalReached
+        }
     }
 
     // MARK: - Subviews
 
-    private var progressLabel: some View {
-        Text(progressText)
-            .font(.system(.title3, design: .rounded, weight: .medium))
-            .foregroundStyle(.secondary)
-            .contentTransition(.numericText())
+    private var streakView: some View {
+        HStack(spacing: 4) {
+            Image(systemName: "flame.fill")
+                .foregroundStyle(.orange)
+                .font(.caption)
+            Text("\(store.currentStreak) day streak")
+                .font(.system(.caption, design: .rounded, weight: .medium))
+                .foregroundStyle(.secondary)
+        }
     }
 
-    private var logButton: some View {
-        Button {
-            store.logBottle()
-            if store.isGoalReached {
-                timerManager.stop()
-                webcamMonitor.stop()
-            } else {
-                reloadTimerInterval()
+    private var presetButtons: some View {
+        HStack(spacing: 8) {
+            ForEach(store.presetBottleSizes, id: \.self) { sizeMl in
+                Button {
+                    tappedButtonId = sizeMl
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.5)) {
+                        // trigger bounce
+                    }
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                        tappedButtonId = nil
+                    }
+                    logVolume(Double(sizeMl))
+                } label: {
+                    Text("\(sizeMl)")
+                        .font(.system(.subheadline, design: .rounded, weight: .medium))
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
+                .tint(.blue)
+                .controlSize(.regular)
+                .scaleEffect(tappedButtonId == sizeMl ? 1.15 : 1.0)
+                .animation(.spring(response: 0.3, dampingFraction: 0.5), value: tappedButtonId)
             }
-        } label: {
-            Label("Log Bottle", systemImage: "plus.circle.fill")
-                .font(.headline)
-                .frame(maxWidth: .infinity)
         }
-        .buttonStyle(.borderedProminent)
-        .tint(.blue)
-        .controlSize(.large)
-        .contextMenu {
-            Button("Undo Last Bottle", role: .destructive) {
+    }
+
+    private func undoToast(ml: Int) -> some View {
+        HStack(spacing: 8) {
+            Text("Logged \(ml) ml")
+                .font(.system(.caption, design: .rounded))
+                .foregroundStyle(.secondary)
+            Button("Undo") {
+                undoToastMl = nil
+                undoToastTask?.cancel()
                 store.unlogBottle()
                 if !store.isGoalReached {
                     reloadTimerInterval()
                     webcamMonitor.start(cameraID: loadSelectedCameraID())
                 }
             }
-            .disabled(store.todayTotalMl <= 0)
+            .font(.system(.caption, design: .rounded, weight: .semibold))
+            .buttonStyle(.plain)
+            .foregroundStyle(.blue)
         }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 6)
+        .background(.ultraThinMaterial, in: Capsule())
+    }
+
+    private func logVolume(_ volumeMl: Double) {
+        store.logVolume(volumeMl)
+        playLogSound()
+        showUndoToast(ml: Int(volumeMl))
+        if store.isGoalReached {
+            timerManager.stop()
+            webcamMonitor.stop()
+        } else {
+            reloadTimerInterval()
+        }
+    }
+
+    private func showUndoToast(ml: Int) {
+        undoToastTask?.cancel()
+        undoToastMl = ml
+        undoToastTask = Task {
+            try? await Task.sleep(for: .seconds(4))
+            guard !Task.isCancelled else { return }
+            undoToastMl = nil
+        }
+    }
+
+    private func playLogSound() {
+        let descriptor = FetchDescriptor<AppSettings>()
+        let soundEnabled = (try? store.modelContext.fetch(descriptor).first)?.resolvedSoundEnabled ?? true
+        guard soundEnabled else { return }
+        NSSound(named: "Pop")?.play()
     }
 
     private var goalReachedView: some View {
@@ -199,7 +269,8 @@ private struct PopoverBody: View {
 
     private var settingsButton: some View {
         Button {
-            onOpenSettings()
+            NSApp.activate(ignoringOtherApps: true)
+            NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
         } label: {
             Label("Settings", systemImage: "gearshape")
                 .font(.subheadline)
@@ -221,19 +292,6 @@ private struct PopoverBody: View {
 
     // MARK: - Helpers
 
-    private var progressText: String {
-        let current = Int(store.todayTotalMl)
-        let goal = Int(store.goalMl)
-        return formatMl(current) + " / " + formatMl(goal) + " ml"
-    }
-
-    private func formatMl(_ value: Int) -> String {
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .decimal
-        formatter.groupingSeparator = " "
-        return formatter.string(from: NSNumber(value: value)) ?? "\(value)"
-    }
-
     @MainActor
     private func loadSelectedCameraID() -> String? {
         let descriptor = FetchDescriptor<AppSettings>()
@@ -252,6 +310,6 @@ private struct PopoverBody: View {
 }
 
 #Preview {
-    PopoverContentView(timerManager: DrinkTimerManager(), webcamMonitor: WebcamMonitor())
+    PopoverContentView(timerManager: DrinkTimerManager(), webcamMonitor: WebcamMonitor(), completionPercentage: .constant(0.5))
         .modelContainer(for: [WaterEntry.self, AppSettings.self], inMemory: true)
 }

@@ -17,7 +17,8 @@
 - **Vision / AVFoundation** — webcam-based drinking detection
 - **UserNotifications** — local reminders and hydration nudges
 - **MenuBarExtra** — persistent menu bar presence for quick logging
-- **AppKit** (where SwiftUI falls short) — fallback for advanced Mac-specific UI needs
+- **Swift Charts** — weekly bar chart visualization
+- **AppKit** (where SwiftUI falls short) — NSSound for feedback, NSEvent for global hotkeys, Settings window integration
 
 ## No Backend
 

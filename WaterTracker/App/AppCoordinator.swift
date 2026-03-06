@@ -1,6 +1,7 @@
 import Foundation
 import SwiftData
 import Observation
+import AppKit
 import os
 
 private let logger = Logger(subsystem: "com.lucasprim.water-tracker", category: "AppCoordinator")
@@ -14,6 +15,8 @@ final class AppCoordinator {
     private var dayChangeObserver: NSObjectProtocol?
     private var lastDetectionTime: Date = .distantPast
     private let detectionCooldown: TimeInterval = 60
+    private var globalShortcutMonitor: Any?
+    var onQuickLog: (() -> Void)?
 
     init(timerManager: DrinkTimerManager, webcamMonitor: WebcamMonitor, modelContext: ModelContext) {
         self.timerManager = timerManager
@@ -38,6 +41,7 @@ final class AppCoordinator {
         loadCalibration()
         webcamMonitor.start(cameraID: loadSelectedCameraID())
         observeDayChange()
+        registerGlobalShortcut()
     }
 
     // MARK: - Midnight Rollover
@@ -122,5 +126,38 @@ final class AppCoordinator {
         let descriptor = FetchDescriptor<AppSettings>()
         let settings = try? modelContext.fetch(descriptor).first
         return settings?.drinkIntervalMinutes ?? 15
+    }
+
+    // MARK: - Global Keyboard Shortcut
+
+    private func registerGlobalShortcut() {
+        // Default: Ctrl+Shift+W
+        globalShortcutMonitor = NSEvent.addGlobalMonitorForEvents(matching: .keyDown) { [weak self] event in
+            let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+            let isCtrlShift = flags == [.control, .shift]
+            if isCtrlShift && event.charactersIgnoringModifiers == "w" {
+                Task { @MainActor in
+                    self?.handleQuickLog()
+                }
+            }
+        }
+    }
+
+    private func handleQuickLog() {
+        // Log default bottle size
+        let descriptor = FetchDescriptor<AppSettings>()
+        let settings = try? modelContext.fetch(descriptor).first
+        let bottleSize = settings?.bottleSizeMl ?? 500
+        let entry = WaterEntry(volumeMl: bottleSize, source: .manual)
+        modelContext.insert(entry)
+        try? modelContext.save()
+
+        // Play sound
+        if settings?.resolvedSoundEnabled ?? true {
+            NSSound(named: "Pop")?.play()
+        }
+
+        onQuickLog?()
+        logger.notice("Quick-log via global shortcut: \(Int(bottleSize))ml")
     }
 }
