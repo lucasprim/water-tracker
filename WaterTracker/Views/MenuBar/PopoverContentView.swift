@@ -45,7 +45,7 @@ struct PopoverContentView: View {
                 }
             } else {
                 ProgressView()
-                    .frame(width: 280, height: 300)
+                    .frame(width: 320, height: 300)
             }
         }
         .onAppear {
@@ -102,7 +102,8 @@ private struct PopoverBody: View {
             }
         }
         .padding(24)
-        .frame(width: 280)
+        .frame(width: 320)
+        .background(.thinMaterial)
     }
 
     // MARK: - Subviews
