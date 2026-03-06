@@ -268,10 +268,7 @@ private struct PopoverBody: View {
     }
 
     private var settingsButton: some View {
-        Button {
-            NSApp.activate(ignoringOtherApps: true)
-            NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
-        } label: {
+        SettingsLink {
             Label("Settings", systemImage: "gearshape")
                 .font(.subheadline)
         }
