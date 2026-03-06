@@ -8,12 +8,15 @@ struct PopoverContentView: View {
     @State private var showingSettings = false
     var timerManager: DrinkTimerManager
     var webcamMonitor: WebcamMonitor
+    var cameraDeviceManager: CameraDeviceManager?
+    var appCoordinator: AppCoordinator?
 
     var body: some View {
         Group {
             if let store {
                 if showingSettings {
                     SettingsView(
+                        cameraDeviceManager: cameraDeviceManager,
                         webcamMonitor: webcamMonitor,
                         onSave: {
                             store.refresh()
@@ -26,6 +29,9 @@ struct PopoverContentView: View {
                         onOpenCalibration: {
                             NSApp.activate(ignoringOtherApps: true)
                             openWindow(id: "calibration")
+                        },
+                        onCameraChanged: { cameraID in
+                            appCoordinator?.restartWebcamWithCamera(cameraID)
                         }
                     )
                     .environment(\.modelContext, modelContext)

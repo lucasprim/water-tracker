@@ -7,11 +7,14 @@ struct SettingsView: View {
     @State private var bottleSizeMl: Double = 500
     @State private var dailyGoalMl: Double = 2000
     @State private var drinkIntervalMinutes: Int = 15
+    @State private var selectedCameraID: String?
 
+    var cameraDeviceManager: CameraDeviceManager?
     var webcamMonitor: WebcamMonitor?
     var onSave: (() -> Void)?
     var onCancel: (() -> Void)?
     var onOpenCalibration: (() -> Void)?
+    var onCameraChanged: ((String?) -> Void)?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -21,6 +24,9 @@ struct SettingsView: View {
                 bottleSizeSection
                 dailyGoalSection
                 drinkIntervalSection
+                if let cameraDeviceManager {
+                    cameraSection(cameraDeviceManager)
+                }
                 if let webcamMonitor {
                     webcamDetectionSection(webcamMonitor)
                 }
@@ -97,6 +103,20 @@ struct SettingsView: View {
         }
     }
 
+    private func cameraSection(_ manager: CameraDeviceManager) -> some View {
+        Section("Camera") {
+            Picker("Camera", selection: $selectedCameraID) {
+                Text("Default")
+                    .tag(nil as String?)
+                ForEach(manager.availableDevices, id: \.uniqueID) { device in
+                    Text(device.localizedName)
+                        .tag(device.uniqueID as String?)
+                }
+            }
+            .labelsHidden()
+        }
+    }
+
     private func webcamDetectionSection(_ monitor: WebcamMonitor) -> some View {
         Section("Webcam Detection") {
             Button("Open Calibration...") {
@@ -149,6 +169,7 @@ struct SettingsView: View {
             bottleSizeMl = settings.bottleSizeMl
             dailyGoalMl = settings.dailyGoalMl
             drinkIntervalMinutes = settings.drinkIntervalMinutes
+            selectedCameraID = settings.selectedCameraID
         }
     }
 
@@ -160,15 +181,18 @@ struct SettingsView: View {
             settings.bottleSizeMl = bottleSizeMl
             settings.dailyGoalMl = dailyGoalMl
             settings.drinkIntervalMinutes = drinkIntervalMinutes
+            settings.selectedCameraID = selectedCameraID
         } else {
             let settings = AppSettings(
                 bottleSizeMl: bottleSizeMl,
                 dailyGoalMl: dailyGoalMl,
                 drinkIntervalMinutes: drinkIntervalMinutes
             )
+            settings.selectedCameraID = selectedCameraID
             modelContext.insert(settings)
         }
         try? modelContext.save()
+        onCameraChanged?(selectedCameraID)
         onSave?()
     }
 
