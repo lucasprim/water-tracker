@@ -160,16 +160,6 @@ private struct PopoverBody: View {
                 .animation(.spring(response: 0.3, dampingFraction: 0.5), value: tappedButtonId)
             }
         }
-        .contextMenu {
-            Button("Undo Last Entry", role: .destructive) {
-                store.unlogBottle()
-                if !store.isGoalReached {
-                    reloadTimerInterval()
-                    webcamMonitor.start(cameraID: loadSelectedCameraID())
-                }
-            }
-            .disabled(store.todayTotalMl <= 0)
-        }
     }
 
     private func undoToast(ml: Int) -> some View {
