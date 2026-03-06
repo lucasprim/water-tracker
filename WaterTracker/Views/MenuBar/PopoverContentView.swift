@@ -77,9 +77,11 @@ private struct PopoverBody: View {
 
     var body: some View {
         VStack(spacing: 16) {
-            WaterCupView(fillPercentage: store.completionPercentage)
-
-            progressLabel
+            ProgressRingView(
+                fillPercentage: store.completionPercentage,
+                currentMl: store.todayTotalMl,
+                goalMl: store.goalMl
+            )
 
             if store.isGoalReached {
                 goalReachedView
@@ -107,13 +109,6 @@ private struct PopoverBody: View {
     }
 
     // MARK: - Subviews
-
-    private var progressLabel: some View {
-        Text(progressText)
-            .font(.system(.title3, design: .rounded, weight: .medium))
-            .foregroundStyle(.secondary)
-            .contentTransition(.numericText())
-    }
 
     private var logButton: some View {
         Button {
@@ -221,19 +216,6 @@ private struct PopoverBody: View {
     }
 
     // MARK: - Helpers
-
-    private var progressText: String {
-        let current = Int(store.todayTotalMl)
-        let goal = Int(store.goalMl)
-        return formatMl(current) + " / " + formatMl(goal) + " ml"
-    }
-
-    private func formatMl(_ value: Int) -> String {
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .decimal
-        formatter.groupingSeparator = " "
-        return formatter.string(from: NSNumber(value: value)) ?? "\(value)"
-    }
 
     @MainActor
     private func loadSelectedCameraID() -> String? {
