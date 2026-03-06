@@ -11,6 +11,7 @@ struct PopoverContentView: View {
     var webcamMonitor: WebcamMonitor
     var cameraDeviceManager: CameraDeviceManager?
     var appCoordinator: AppCoordinator?
+    @Binding var completionPercentage: Double
 
     var body: some View {
         Group {
@@ -51,7 +52,14 @@ struct PopoverContentView: View {
         }
         .onAppear {
             if store == nil {
-                store = DailyProgressStore(modelContext: modelContext)
+                let s = DailyProgressStore(modelContext: modelContext)
+                store = s
+                completionPercentage = s.completionPercentage
+            }
+        }
+        .onChange(of: store?.completionPercentage) { _, newValue in
+            if let newValue {
+                completionPercentage = newValue
             }
         }
     }
@@ -310,6 +318,6 @@ private struct PopoverBody: View {
 }
 
 #Preview {
-    PopoverContentView(timerManager: DrinkTimerManager(), webcamMonitor: WebcamMonitor())
+    PopoverContentView(timerManager: DrinkTimerManager(), webcamMonitor: WebcamMonitor(), completionPercentage: .constant(0.5))
         .modelContainer(for: [WaterEntry.self, AppSettings.self], inMemory: true)
 }
