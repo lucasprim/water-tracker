@@ -36,7 +36,7 @@ final class AppCoordinator {
         }
 
         loadCalibration()
-        webcamMonitor.start()
+        webcamMonitor.start(cameraID: loadSelectedCameraID())
         observeDayChange()
     }
 
@@ -59,7 +59,7 @@ final class AppCoordinator {
         timerManager.start(intervalMinutes: interval)
 
         if webcamMonitor.status != .running && webcamMonitor.status != .denied {
-            webcamMonitor.start()
+            webcamMonitor.start(cameraID: loadSelectedCameraID())
         }
     }
 
@@ -105,6 +105,17 @@ final class AppCoordinator {
             satTolerance: settings.bottleColorSatTolerance
         )
         webcamMonitor.setDetectionAlgorithm(settings.detectionAlgorithm)
+    }
+
+    func restartWebcamWithCamera(_ cameraID: String?) {
+        webcamMonitor.stop()
+        loadCalibration()
+        webcamMonitor.start(cameraID: cameraID)
+    }
+
+    private func loadSelectedCameraID() -> String? {
+        let descriptor = FetchDescriptor<AppSettings>()
+        return try? modelContext.fetch(descriptor).first?.selectedCameraID
     }
 
     private func loadDrinkInterval() -> Int {

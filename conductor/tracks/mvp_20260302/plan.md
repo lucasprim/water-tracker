@@ -3,7 +3,7 @@
 **Track ID:** mvp_20260302
 **Spec:** [spec.md](./spec.md)
 **Created:** 2026-03-02
-**Status:** [~] In Progress
+**Status:** [x] Complete
 
 ## Overview
 
@@ -140,14 +140,14 @@ Tighten up animations, assets, and edge cases; run manual end-to-end testing.
 - [x] Task 7.3: Review all popover layouts for spacing, typography, and dark/light mode correctness
 - [x] Task 7.4: Handle midnight rollover: reset daily entries and restart the timer automatically
 - [x] Task 7.5: Test on macOS 14 and macOS 15 (Sequoia); fix any compatibility issues
-- [~] Task 7.6: Manual end-to-end test of the full flow: launch → settings → log manually → wait for reminder → simulate webcam detection → hit daily goal
+- [x] Task 7.6: Manual end-to-end test of the full flow: launch → settings → log manually → wait for reminder → simulate webcam detection → hit daily goal
 
 ### Verification
 
-- [ ] All acceptance criteria from spec.md are met
-- [ ] App looks polished in both light and dark mode
-- [ ] No crashes or data loss observed in end-to-end testing
-- [ ] Ready for App Store submission prep
+- [x] All acceptance criteria from spec.md are met
+- [x] App looks polished in both light and dark mode
+- [x] No crashes or data loss observed in end-to-end testing
+- [x] Ready for App Store submission prep
 
 ---
 

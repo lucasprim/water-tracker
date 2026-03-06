@@ -21,6 +21,9 @@ final class AppSettings {
     // Detection algorithm
     var selectedAlgorithmID: String?
 
+    // Selected camera (nil = system default)
+    var selectedCameraID: String?
+
     // Calibration photos (JPEG data)
     @Attribute(.externalStorage) var baselineImageData: Data?
     @Attribute(.externalStorage) var drinkingImageData: Data?

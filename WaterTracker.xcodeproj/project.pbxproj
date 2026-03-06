@@ -22,6 +22,7 @@
 		AE7E69E685E5367AF7E02B9E /* WaterTrackerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5FB2A81CECD2E4D0015154FC /* WaterTrackerTests.swift */; };
 		AF03542B65AC47ABDA949061 /* NotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F3BD7410B2FC202ACE26027 /* NotificationService.swift */; };
 		C1EED8CF36366F29E34118AA /* CameraFrameView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 879FD637549FA4EC101CB69D /* CameraFrameView.swift */; };
+		B2C3D4E5F6A7B8C9D0E1F2A3 /* CameraDeviceManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6A7B8C9D0E1F2 /* CameraDeviceManager.swift */; };
 		C6C37AC255579922B7DB908C /* ColorFingersAlgorithm.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0EF038CDBC3850B318B0F431 /* ColorFingersAlgorithm.swift */; };
 		CDE2E32115A29E4D2C8D8478 /* PopoverContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 97CC81C662AD46C3E62327E6 /* PopoverContentView.swift */; };
 		E23526DB06BB9466E4AD4670 /* CalibrationWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = FFB5B4988E06536BED5B5CA4 /* CalibrationWindow.swift */; };
@@ -44,6 +45,7 @@
 
 /* Begin PBXFileReference section */
 		0D42E56F1EF6754125985224 /* DailyProgressStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyProgressStore.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F6A7B8C9D0E1F2 /* CameraDeviceManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraDeviceManager.swift; sourceTree = "<group>"; };
 		0EF038CDBC3850B318B0F431 /* ColorFingersAlgorithm.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ColorFingersAlgorithm.swift; sourceTree = "<group>"; };
 		0F3BD7410B2FC202ACE26027 /* NotificationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationService.swift; sourceTree = "<group>"; };
 		1D90B1049ECA1CB7F4FC6A83 /* DrinkTimerManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DrinkTimerManager.swift; sourceTree = "<group>"; };
@@ -147,6 +149,7 @@
 		78DD4F9FC5191406B94393D1 /* Services */ = {
 			isa = PBXGroup;
 			children = (
+				A1B2C3D4E5F6A7B8C9D0E1F2 /* CameraDeviceManager.swift */,
 				0EF038CDBC3850B318B0F431 /* ColorFingersAlgorithm.swift */,
 				E1999077F59937B6414F3B14 /* DetectionAlgorithm.swift */,
 				1D90B1049ECA1CB7F4FC6A83 /* DrinkTimerManager.swift */,
@@ -282,6 +285,7 @@
 				9550151A2A6703B6BE85E44B /* AppDelegate.swift in Sources */,
 				5DEF38C98287116931BE5EF9 /* AppSettings.swift in Sources */,
 				E23526DB06BB9466E4AD4670 /* CalibrationWindow.swift in Sources */,
+				B2C3D4E5F6A7B8C9D0E1F2A3 /* CameraDeviceManager.swift in Sources */,
 				C1EED8CF36366F29E34118AA /* CameraFrameView.swift in Sources */,
 				C6C37AC255579922B7DB908C /* ColorFingersAlgorithm.swift in Sources */,
 				33B0F7EEAC31A7A0C0D24C6F /* DailyProgressStore.swift in Sources */,

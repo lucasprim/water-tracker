@@ -8,12 +8,15 @@ struct PopoverContentView: View {
     @State private var showingSettings = false
     var timerManager: DrinkTimerManager
     var webcamMonitor: WebcamMonitor
+    var cameraDeviceManager: CameraDeviceManager?
+    var appCoordinator: AppCoordinator?
 
     var body: some View {
         Group {
             if let store {
                 if showingSettings {
                     SettingsView(
+                        cameraDeviceManager: cameraDeviceManager,
                         webcamMonitor: webcamMonitor,
                         onSave: {
                             store.refresh()
@@ -26,6 +29,9 @@ struct PopoverContentView: View {
                         onOpenCalibration: {
                             NSApp.activate(ignoringOtherApps: true)
                             openWindow(id: "calibration")
+                        },
+                        onCameraChanged: { cameraID in
+                            appCoordinator?.restartWebcamWithCamera(cameraID)
                         }
                     )
                     .environment(\.modelContext, modelContext)
@@ -130,7 +136,7 @@ private struct PopoverBody: View {
                 store.unlogBottle()
                 if !store.isGoalReached {
                     reloadTimerInterval()
-                    webcamMonitor.start()
+                    webcamMonitor.start(cameraID: loadSelectedCameraID())
                 }
             }
             .disabled(store.todayTotalMl <= 0)
@@ -150,7 +156,7 @@ private struct PopoverBody: View {
             Button("Reset today") {
                 store.resetToday()
                 reloadTimerInterval()
-                webcamMonitor.start()
+                webcamMonitor.start(cameraID: loadSelectedCameraID())
             }
             .font(.caption)
             .buttonStyle(.plain)
@@ -226,6 +232,12 @@ private struct PopoverBody: View {
         formatter.numberStyle = .decimal
         formatter.groupingSeparator = " "
         return formatter.string(from: NSNumber(value: value)) ?? "\(value)"
+    }
+
+    @MainActor
+    private func loadSelectedCameraID() -> String? {
+        let descriptor = FetchDescriptor<AppSettings>()
+        return try? store.modelContext.fetch(descriptor).first?.selectedCameraID
     }
 
     @MainActor

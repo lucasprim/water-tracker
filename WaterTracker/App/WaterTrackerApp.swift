@@ -11,6 +11,7 @@ struct WaterTrackerApp: App {
     let container: ModelContainer
     @State private var timerManager = DrinkTimerManager()
     @State private var webcamMonitor = WebcamMonitor()
+    @State private var cameraDeviceManager = CameraDeviceManager()
     @State private var appCoordinator: AppCoordinator?
 
     init() {
@@ -22,7 +23,12 @@ struct WaterTrackerApp: App {
 
     var body: some Scene {
         MenuBarExtra {
-            PopoverContentView(timerManager: timerManager, webcamMonitor: webcamMonitor)
+            PopoverContentView(
+                        timerManager: timerManager,
+                        webcamMonitor: webcamMonitor,
+                        cameraDeviceManager: cameraDeviceManager,
+                        appCoordinator: appCoordinator
+                    )
                 .modelContainer(container)
                 .onAppear {
                     if let coordinator = appCoordinator {
