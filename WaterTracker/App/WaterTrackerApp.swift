@@ -42,6 +42,10 @@ struct WaterTrackerApp: App {
                             webcamMonitor: webcamMonitor,
                             modelContext: container.mainContext
                         )
+                        coordinator.onQuickLog = { [weak coordinator] in
+                            // Refresh will happen when popover appears next
+                            _ = coordinator
+                        }
                         coordinator.start()
                         appCoordinator = coordinator
                     }
