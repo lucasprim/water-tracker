@@ -88,6 +88,7 @@ private struct PopoverBody: View {
     @State private var wasGoalReached = false
     @State private var undoToastMl: Int?
     @State private var undoToastTask: Task<Void, Never>?
+    @State private var showWeeklyChart = false
 
     var body: some View {
         VStack(spacing: 16) {
@@ -101,6 +102,20 @@ private struct PopoverBody: View {
                 goalReachedView
             } else {
                 presetButtons
+            }
+
+            // Streak
+            if store.currentStreak > 0 {
+                streakView
+            }
+
+            // Weekly chart
+            DisclosureGroup(isExpanded: $showWeeklyChart) {
+                WeeklyChartView(weeklyData: store.weeklyData, goalMl: store.goalMl)
+            } label: {
+                Text("Weekly")
+                    .font(.system(.caption, design: .rounded, weight: .medium))
+                    .foregroundStyle(.secondary)
             }
 
             if webcamMonitor.status == .denied {
@@ -143,6 +158,17 @@ private struct PopoverBody: View {
     }
 
     // MARK: - Subviews
+
+    private var streakView: some View {
+        HStack(spacing: 4) {
+            Image(systemName: "flame.fill")
+                .foregroundStyle(.orange)
+                .font(.caption)
+            Text("\(store.currentStreak) day streak")
+                .font(.system(.caption, design: .rounded, weight: .medium))
+                .foregroundStyle(.secondary)
+        }
+    }
 
     private var presetButtons: some View {
         HStack(spacing: 8) {
