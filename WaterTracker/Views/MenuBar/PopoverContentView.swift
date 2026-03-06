@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import AppKit
 
 struct PopoverContentView: View {
     @Environment(\.modelContext) private var modelContext
@@ -139,12 +140,20 @@ private struct PopoverBody: View {
 
     private func logVolume(_ volumeMl: Double) {
         store.logVolume(volumeMl)
+        playLogSound()
         if store.isGoalReached {
             timerManager.stop()
             webcamMonitor.stop()
         } else {
             reloadTimerInterval()
         }
+    }
+
+    private func playLogSound() {
+        let descriptor = FetchDescriptor<AppSettings>()
+        let soundEnabled = (try? store.modelContext.fetch(descriptor).first)?.resolvedSoundEnabled ?? true
+        guard soundEnabled else { return }
+        NSSound(named: "Pop")?.play()
     }
 
     private var goalReachedView: some View {

@@ -7,6 +7,7 @@ final class AppSettings {
     var dailyGoalMl: Double
     var drinkIntervalMinutes: Int
     var presetBottleSizes: [Int]?
+    var soundEnabled: Bool?
 
     // Webcam calibration
     var calibratedBaselineQuality: Float?
@@ -33,6 +34,10 @@ final class AppSettings {
 
     var resolvedPresetBottleSizes: [Int] {
         presetBottleSizes ?? Self.defaultPresetBottleSizes
+    }
+
+    var resolvedSoundEnabled: Bool {
+        soundEnabled ?? true
     }
 
     var detectionAlgorithm: DetectionAlgorithmID {
