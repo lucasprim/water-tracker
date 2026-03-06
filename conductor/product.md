@@ -20,5 +20,5 @@ Mac users who want to build a daily hydration habit.
 
 - Simple one-click logging, daily goal tracking, and gentle reminders
 - Lightweight native Mac app — no account required, privacy-first
-- Webcam tracking for detecting drinking water every X minutes (configurable interval)
+- Webcam tracking for detecting drinking water every X minutes (configurable interval, selectable camera)
 - Bottle-finished tracking with configurable bottle sizes, so users tap when they finish a bottle and the app displays total water consumed (metric units only)
