@@ -10,6 +10,7 @@ final class DailyProgressStore {
     private(set) var todayTotalMl: Double = 0
     private(set) var goalMl: Double = 2000
     private(set) var bottleSizeMl: Double = 500
+    private(set) var presetBottleSizes: [Int] = [250, 350, 500, 750]
 
     var completionPercentage: Double {
         guard goalMl > 0 else { return 0 }
@@ -26,7 +27,11 @@ final class DailyProgressStore {
     }
 
     func logBottle(source: EntrySource = .manual) {
-        let entry = WaterEntry(volumeMl: bottleSizeMl, source: source)
+        logVolume(bottleSizeMl, source: source)
+    }
+
+    func logVolume(_ volumeMl: Double, source: EntrySource = .manual) {
+        let entry = WaterEntry(volumeMl: volumeMl, source: source)
         modelContext.insert(entry)
         try? modelContext.save()
         refresh()
@@ -75,12 +80,14 @@ final class DailyProgressStore {
         if let settings = try? modelContext.fetch(descriptor).first {
             goalMl = settings.dailyGoalMl
             bottleSizeMl = settings.bottleSizeMl
+            presetBottleSizes = settings.resolvedPresetBottleSizes
         } else {
             let defaults = AppSettings()
             modelContext.insert(defaults)
             try? modelContext.save()
             goalMl = defaults.dailyGoalMl
             bottleSizeMl = defaults.bottleSizeMl
+            presetBottleSizes = defaults.resolvedPresetBottleSizes
         }
     }
 

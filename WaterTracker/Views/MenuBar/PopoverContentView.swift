@@ -86,7 +86,7 @@ private struct PopoverBody: View {
             if store.isGoalReached {
                 goalReachedView
             } else {
-                logButton
+                presetButtons
             }
 
             if webcamMonitor.status == .denied {
@@ -110,25 +110,23 @@ private struct PopoverBody: View {
 
     // MARK: - Subviews
 
-    private var logButton: some View {
-        Button {
-            store.logBottle()
-            if store.isGoalReached {
-                timerManager.stop()
-                webcamMonitor.stop()
-            } else {
-                reloadTimerInterval()
+    private var presetButtons: some View {
+        HStack(spacing: 8) {
+            ForEach(store.presetBottleSizes, id: \.self) { sizeMl in
+                Button {
+                    logVolume(Double(sizeMl))
+                } label: {
+                    Text("\(sizeMl)")
+                        .font(.system(.subheadline, design: .rounded, weight: .medium))
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
+                .tint(.blue)
+                .controlSize(.regular)
             }
-        } label: {
-            Label("Log Bottle", systemImage: "plus.circle.fill")
-                .font(.headline)
-                .frame(maxWidth: .infinity)
         }
-        .buttonStyle(.borderedProminent)
-        .tint(.blue)
-        .controlSize(.large)
         .contextMenu {
-            Button("Undo Last Bottle", role: .destructive) {
+            Button("Undo Last Entry", role: .destructive) {
                 store.unlogBottle()
                 if !store.isGoalReached {
                     reloadTimerInterval()
@@ -136,6 +134,16 @@ private struct PopoverBody: View {
                 }
             }
             .disabled(store.todayTotalMl <= 0)
+        }
+    }
+
+    private func logVolume(_ volumeMl: Double) {
+        store.logVolume(volumeMl)
+        if store.isGoalReached {
+            timerManager.stop()
+            webcamMonitor.stop()
+        } else {
+            reloadTimerInterval()
         }
     }
 

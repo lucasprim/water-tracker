@@ -6,6 +6,7 @@ final class AppSettings {
     var bottleSizeMl: Double
     var dailyGoalMl: Double
     var drinkIntervalMinutes: Int
+    var presetBottleSizes: [Int]?
 
     // Webcam calibration
     var calibratedBaselineQuality: Float?
@@ -28,6 +29,12 @@ final class AppSettings {
     @Attribute(.externalStorage) var baselineImageData: Data?
     @Attribute(.externalStorage) var drinkingImageData: Data?
 
+    static let defaultPresetBottleSizes = [250, 350, 500, 750]
+
+    var resolvedPresetBottleSizes: [Int] {
+        presetBottleSizes ?? Self.defaultPresetBottleSizes
+    }
+
     var detectionAlgorithm: DetectionAlgorithmID {
         get {
             selectedAlgorithmID.flatMap { DetectionAlgorithmID(rawValue: $0) } ?? .colorFingers
@@ -41,6 +48,7 @@ final class AppSettings {
         bottleSizeMl: Double = 500,
         dailyGoalMl: Double = 2000,
         drinkIntervalMinutes: Int = 15,
+        presetBottleSizes: [Int] = [250, 350, 500, 750],
         calibratedBaselineQuality: Float? = nil,
         calibratedDropThreshold: Float? = nil,
         calibrationDate: Date? = nil
@@ -48,6 +56,7 @@ final class AppSettings {
         self.bottleSizeMl = bottleSizeMl
         self.dailyGoalMl = dailyGoalMl
         self.drinkIntervalMinutes = drinkIntervalMinutes
+        self.presetBottleSizes = presetBottleSizes
         self.calibratedBaselineQuality = calibratedBaselineQuality
         self.calibratedDropThreshold = calibratedDropThreshold
         self.calibrationDate = calibrationDate
