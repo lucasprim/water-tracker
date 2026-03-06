@@ -75,6 +75,7 @@ private struct PopoverBody: View {
     var timerManager: DrinkTimerManager
     var webcamMonitor: WebcamMonitor
     var onOpenSettings: () -> Void
+    @State private var tappedButtonId: Int?
 
     var body: some View {
         VStack(spacing: 16) {
@@ -115,6 +116,13 @@ private struct PopoverBody: View {
         HStack(spacing: 8) {
             ForEach(store.presetBottleSizes, id: \.self) { sizeMl in
                 Button {
+                    tappedButtonId = sizeMl
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.5)) {
+                        // trigger bounce
+                    }
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                        tappedButtonId = nil
+                    }
                     logVolume(Double(sizeMl))
                 } label: {
                     Text("\(sizeMl)")
@@ -124,6 +132,8 @@ private struct PopoverBody: View {
                 .buttonStyle(.bordered)
                 .tint(.blue)
                 .controlSize(.regular)
+                .scaleEffect(tappedButtonId == sizeMl ? 1.15 : 1.0)
+                .animation(.spring(response: 0.3, dampingFraction: 0.5), value: tappedButtonId)
             }
         }
         .contextMenu {
