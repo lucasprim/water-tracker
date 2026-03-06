@@ -4,7 +4,6 @@ import SwiftData
 struct SettingsWindow: View {
     var cameraDeviceManager: CameraDeviceManager?
     var webcamMonitor: WebcamMonitor?
-    var onOpenCalibration: (() -> Void)?
     var onCameraChanged: ((String?) -> Void)?
     var onSettingsSaved: (() -> Void)?
 
@@ -28,7 +27,6 @@ struct SettingsWindow: View {
             CameraTab(
                 cameraDeviceManager: cameraDeviceManager,
                 webcamMonitor: webcamMonitor,
-                onOpenCalibration: onOpenCalibration,
                 onCameraChanged: onCameraChanged,
                 onSettingsSaved: onSettingsSaved
             )
@@ -37,6 +35,12 @@ struct SettingsWindow: View {
             }
         }
         .frame(width: 420, height: 340)
+        .onAppear {
+            NSApp.activate(ignoringOtherApps: true)
+            DispatchQueue.main.async {
+                NSApp.windows.first { $0.title.contains("Settings") || $0.identifier?.rawValue == "settings" }?.center()
+            }
+        }
     }
 }
 
@@ -231,10 +235,10 @@ private struct RemindersTab: View {
 
 private struct CameraTab: View {
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.openWindow) private var openWindow
     @State private var selectedCameraID: String?
     var cameraDeviceManager: CameraDeviceManager?
     var webcamMonitor: WebcamMonitor?
-    var onOpenCalibration: (() -> Void)?
     var onCameraChanged: ((String?) -> Void)?
     var onSettingsSaved: (() -> Void)?
 
@@ -259,7 +263,7 @@ private struct CameraTab: View {
 
             Section("Calibration") {
                 Button("Open Calibration...") {
-                    onOpenCalibration?()
+                    openWindow(id: "calibration")
                 }
             }
 
