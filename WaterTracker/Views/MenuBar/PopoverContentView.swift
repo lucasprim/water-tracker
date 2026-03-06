@@ -78,6 +78,8 @@ private struct PopoverBody: View {
     @State private var tappedButtonId: Int?
     @State private var showConfetti = false
     @State private var wasGoalReached = false
+    @State private var undoToastMl: Int?
+    @State private var undoToastTask: Task<Void, Never>?
 
     var body: some View {
         VStack(spacing: 16) {
@@ -110,6 +112,14 @@ private struct PopoverBody: View {
         .padding(24)
         .frame(width: 320)
         .background(.thinMaterial)
+        .overlay(alignment: .bottom) {
+            if let ml = undoToastMl {
+                undoToast(ml: ml)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                    .padding(.bottom, 8)
+            }
+        }
+        .animation(.easeInOut(duration: 0.25), value: undoToastMl)
         .overlay {
             ConfettiView(isActive: $showConfetti)
         }
@@ -162,14 +172,48 @@ private struct PopoverBody: View {
         }
     }
 
+    private func undoToast(ml: Int) -> some View {
+        HStack(spacing: 8) {
+            Text("Logged \(ml) ml")
+                .font(.system(.caption, design: .rounded))
+                .foregroundStyle(.secondary)
+            Button("Undo") {
+                undoToastMl = nil
+                undoToastTask?.cancel()
+                store.unlogBottle()
+                if !store.isGoalReached {
+                    reloadTimerInterval()
+                    webcamMonitor.start(cameraID: loadSelectedCameraID())
+                }
+            }
+            .font(.system(.caption, design: .rounded, weight: .semibold))
+            .buttonStyle(.plain)
+            .foregroundStyle(.blue)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 6)
+        .background(.ultraThinMaterial, in: Capsule())
+    }
+
     private func logVolume(_ volumeMl: Double) {
         store.logVolume(volumeMl)
         playLogSound()
+        showUndoToast(ml: Int(volumeMl))
         if store.isGoalReached {
             timerManager.stop()
             webcamMonitor.stop()
         } else {
             reloadTimerInterval()
+        }
+    }
+
+    private func showUndoToast(ml: Int) {
+        undoToastTask?.cancel()
+        undoToastMl = ml
+        undoToastTask = Task {
+            try? await Task.sleep(for: .seconds(4))
+            guard !Task.isCancelled else { return }
+            undoToastMl = nil
         }
     }
 
