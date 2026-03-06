@@ -61,9 +61,6 @@ struct WaterTrackerApp: App {
             SettingsWindow(
                 cameraDeviceManager: cameraDeviceManager,
                 webcamMonitor: webcamMonitor,
-                onOpenCalibration: {
-                    NSApp.activate(ignoringOtherApps: true)
-                },
                 onCameraChanged: { cameraID in
                     appCoordinator?.restartWebcamWithCamera(cameraID)
                 },
